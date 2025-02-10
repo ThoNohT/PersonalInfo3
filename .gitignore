@@ -1,4 +1,6 @@
 *.beam
 *.ez
 /build
+/dist/*.js
+/dist/*.js.map
 erl_crash.dump
