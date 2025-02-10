@@ -5,6 +5,10 @@ import lustre/effect
 import lustre/element.{text}
 import lustre/element/html.{div}
 
+fn dispatch_message(message message) -> effect.Effect(message) {
+  effect.from(fn(dispatch) { dispatch(message) })
+}
+
 pub fn main() {
   let app = lustre.application(init, update, view)
   let assert Ok(_) = lustre.start(app, "#app", Nil)
@@ -13,7 +17,7 @@ pub fn main() {
 }
 
 fn init(_flags) {
-  #(Loading, effect.none())
+  #(Loading, dispatch_message(LoadState))
 }
 
 type DayEvent {
@@ -27,24 +31,28 @@ type DayState {
 
 type State {
   Loading
-  State(today: Day, current_state: DayState, week_target: Float)
+  Loaded(today: Day, current_state: DayState, week_target: Float)
 }
 
 type Msg {
-  Incr
-  Decr
+  LoadState
 }
 
 fn update(model, msg) {
-  case msg {
-    Incr -> #(model, effect.none())
-    Decr -> #(model, effect.none())
+  let today = birl.get_day(birl.now())
+
+  case model, msg {
+    Loading, LoadState -> {
+        let state = DayState(date: today, target: 8.0, events: [])
+        #(Loaded(today: today, current_state: state, week_target: 40.0), effect.none())
+    }
+    _, _ -> #(model, effect.none())
   }
 }
 
 fn view(model) {
   case model {
     Loading -> div([], [ text("Loading...")])
-    State(_, _, _) -> div([], [ text("Loaded..")])
+    Loaded(_, _, _) -> div([], [ text("Loaded")])
   }
 }
