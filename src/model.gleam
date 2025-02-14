@@ -4,6 +4,8 @@ import gleam/string
 
 import birl.{type TimeOfDay, TimeOfDay, type Day}
 
+import util/option as opt
+
 pub type DayEvent {
   ClockEvent(time: TimeOfDay, home: Bool, in: Bool)
   HolidayBooking(amount: Float)
@@ -25,12 +27,6 @@ pub type State {
 pub type Msg {
   LoadState
   TimeChanged(new_time: String)
-}
-
-
-fn option_when(opt: Option(a), when: fn(a) -> Bool) -> Option(a) {
-  use val <- option.then(opt)
-  case when(val) { True -> Some(val) False -> None }
 }
 
 /// Validates a string for a time of day.
@@ -56,7 +52,7 @@ pub fn validate_time(time: String) -> Option(TimeOfDay) {
   let parse_pos_int = fn(str) {
       int.base_parse(str, 10) 
       |> option.from_result 
-      |> option_when(fn(x) { x >= 0})
+      |> opt.when(fn(x) { x >= 0})
   }
 
   let parse_split_time = fn(hour: String, minute: String) {
@@ -64,7 +60,7 @@ pub fn validate_time(time: String) -> Option(TimeOfDay) {
     use int_min <- option.then(parse_pos_int(minute))
 
     case int_hr, int_min {
-      h, m if h >= 0 && h < 24 && m >= 0 && m < 60 -> TimeOfDay(h, m, 0, 0) |> Some
+      h, m if h < 24 && m < 60 -> TimeOfDay(h, m, 0, 0) |> Some
       _, _ -> None
     }
   }
