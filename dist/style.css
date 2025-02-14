@@ -4,3 +4,7 @@ body {
 div.main-container {
 
 }
+
+label.form-label {
+  padding: 0.5rem 0;
+}
