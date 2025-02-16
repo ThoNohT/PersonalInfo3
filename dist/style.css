@@ -5,6 +5,10 @@ div.main-container {
 
 }
 
+input.time-form {
+  max-width: 7rem;
+}
+
 label.form-label {
   padding: 0.5rem 0;
 }
