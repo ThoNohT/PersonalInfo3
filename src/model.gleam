@@ -9,7 +9,7 @@ pub type DayEvent {
 }
 
 pub type DayState {
-  DayState(date: Day, target: Float, events: List(DayEvent))
+  DayState(date: Day, target: Duration, events: List(DayEvent))
 }
 
 pub type InputState {
