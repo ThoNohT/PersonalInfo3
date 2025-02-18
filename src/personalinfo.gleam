@@ -12,7 +12,8 @@ import model.{ClockEvent, HolidayBooking,
   type DayState, DayState,
   type InputState, InputState,
   type State, Loading, Loaded,
-  type Msg, LoadState, TimeInputChanged, HolidayInputChanged, TargetChanged}
+  type Msg, LoadState, TimeInputChanged, HolidayInputChanged, TargetChanged,
+  Validated, validate}
 import view.{view}
 
 fn dispatch_message(message message) -> effect.Effect(message) {
@@ -41,27 +42,30 @@ fn update(model: State, msg: Msg) {
         ]
         let current_state = DayState(date: today, target: Duration(8, 0, Some(time.DecimalFormat)), events:)
         let input_state = InputState(
-          time_input: "", parsed_time: None,
-          holiday_input: "", parsed_holiday: None,
-          target_input: time.duration_to_decimal_string(current_state.target, 2),
-          parsed_target: Some(current_state.target))
+          clock_input: Validated("", None),
+          holiday_input: Validated("", None),
+          target_input: Validated(time.duration_to_decimal_string(current_state.target, 2), Some(current_state.target))
+        )
         ef.just(Loaded(today:, current_state:, week_target: 40.0, input_state:))
     }
     Loaded(..) as st, TimeInputChanged(new_time) -> {
       let new_time = string.slice(new_time, 0, 5)
-      let input_state = InputState(..st.input_state, time_input: new_time, parsed_time: time.parse_time(new_time))
+      let input_state = InputState(..st.input_state, clock_input: validate(new_time, time.parse_time))
       ef.just(Loaded(..st, input_state:))
     }
     Loaded(..) as st, HolidayInputChanged(new_duration) -> {
       let new_duration = string.slice(new_duration, 0, 6)
-      let input_state = InputState(..st.input_state, holiday_input: new_duration, parsed_holiday: time.parse_duration(new_duration))
+      let input_state = InputState(..st.input_state, holiday_input: validate(new_duration, time.parse_duration))
       ef.just(Loaded(..st, input_state:))
     }
     Loaded(..) as st, TargetChanged(new_target) -> {
       let new_target = string.slice(new_target, 0, 6)
-      let parsed_target = time.parse_duration(new_target)
-      let input_state = InputState(..st.input_state, target_input: new_target, parsed_target:)
-      let current_state = case parsed_target { None -> st.current_state Some(target) -> DayState(..st.current_state, target: ) }
+      let target_input = validate(new_target, time.parse_duration)
+      let input_state = InputState(..st.input_state, target_input:)
+      let current_state = case target_input.parsed {
+        None -> st.current_state
+        Some(target) -> DayState(..st.current_state, target:)
+      }
       ef.just(Loaded(..st, current_state:, input_state:))
     }
     _, _ -> ef.just(model)
