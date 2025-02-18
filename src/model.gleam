@@ -16,6 +16,8 @@ pub type InputState {
   InputState(
     time_input: String,
     parsed_time: Option(Time),
+    holiday_input: String,
+    parsed_holiday: Option(Duration),
     target_input: String,
     parsed_target: Option(Duration),
   )
@@ -28,6 +30,7 @@ pub type State {
 
 pub type Msg {
   LoadState
-  TimeChanged(new_time: String)
+  TimeInputChanged(new_time: String)
+  HolidayInputChanged(new_duration: String)
   TargetChanged(new_target: String)
 }

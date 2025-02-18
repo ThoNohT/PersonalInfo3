@@ -12,7 +12,7 @@ import model.{ClockEvent, HolidayBooking,
   type DayState, DayState,
   type InputState, InputState,
   type State, Loading, Loaded,
-  type Msg, LoadState, TimeChanged, TargetChanged}
+  type Msg, LoadState, TimeInputChanged, HolidayInputChanged, TargetChanged}
 import view.{view}
 
 fn dispatch_message(message message) -> effect.Effect(message) {
@@ -40,12 +40,21 @@ fn update(model: State, msg: Msg) {
         , HolidayBooking(12.5)
         ]
         let current_state = DayState(date: today, target: Duration(8, 0, Some(time.DecimalFormat)), events:)
-        let input_state = InputState(time_input: "", parsed_time: None, target_input: time.duration_to_decimal_string(current_state.target, 2), parsed_target: Some(current_state.target))
+        let input_state = InputState(
+          time_input: "", parsed_time: None,
+          holiday_input: "", parsed_holiday: None,
+          target_input: time.duration_to_decimal_string(current_state.target, 2),
+          parsed_target: Some(current_state.target))
         ef.just(Loaded(today:, current_state:, week_target: 40.0, input_state:))
     }
-    Loaded(..) as st, TimeChanged(new_time) -> {
+    Loaded(..) as st, TimeInputChanged(new_time) -> {
       let new_time = string.slice(new_time, 0, 5)
       let input_state = InputState(..st.input_state, time_input: new_time, parsed_time: time.parse_time(new_time))
+      ef.just(Loaded(..st, input_state:))
+    }
+    Loaded(..) as st, HolidayInputChanged(new_duration) -> {
+      let new_duration = string.slice(new_duration, 0, 6)
+      let input_state = InputState(..st.input_state, holiday_input: new_duration, parsed_holiday: time.parse_duration(new_duration))
       ef.just(Loaded(..st, input_state:))
     }
     Loaded(..) as st, TargetChanged(new_target) -> {
