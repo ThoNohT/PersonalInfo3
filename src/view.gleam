@@ -20,32 +20,32 @@ fn day_item_card(event: DayEvent) {
   let body = case event {
     ClockEvent(time, _, in) ->  {
       let prefix = case in { True -> "In:" False -> "Out:" }
-      [ eh.b([ a.class("px-1") ], [ e.text(prefix) ]) 
+      [ eh.b([ a.class("px-1") ], [ e.text(prefix) ])
       , eh.span([ a.class("px-1") ], [ e.text(time.time_to_time_string(time)) ])
       ]
     }
     HolidayBooking(amount) -> {
-      [ eh.b([ a.class("px-1")  ], [ e.text("Holiday: ") ]) 
-      , eh.span([ a.class("px-1")  ], [ e.text(float.to_string(amount)) ])
+      [ eh.b([ a.class("px-1") ], [ e.text("Holiday: ") ])
+      , eh.span([ a.class("px-1") ], [ e.text(float.to_string(amount)) ])
       ]
     }
   }
   eh.div(
-    [ a.class("list-item border border-2 rounded-3 m-1 p-1 d-flex flex-row") ], 
+    [ a.class("list-item border border-2 rounded-3 m-1 p-1 d-flex flex-row") ],
     body)
 }
 
 fn day_item_list(day_state: DayState, is: InputState) {
-  eh.div([ a.class("col-6") ], 
-    [ eh.h5([], [e.text("Day")] )
+  eh.div([ a.class("col-6") ],
+    [ eh.h5([], [ e.text("Day") ] )
     , text_input("target", "Day target:", is.target_input, "Invalid format.", TargetChanged, time.duration_to_unparsed_format_string)
     , eh.div([], day_state.events |> list.map(day_item_card))
   ])
 }
 
 fn text_input(name, label, value: Validated(a), invalid_message, input_message, parsed_to_string) {
-  eh.div([ a.class("row container justify-content-start") ], 
-  [ eh.label([ a.for(name <> "-input"), a.class("col-2 px-0 py-2")], [ e.text(label) ])
+  eh.div([ a.class("row container justify-content-start") ],
+  [ eh.label([ a.for(name <> "-input"), a.class("col-2 px-0 py-2") ], [ e.text(label) ])
 
   , eh.div([ a.class("col-10") ],
     [ eh.input(
@@ -61,9 +61,9 @@ fn text_input(name, label, value: Validated(a), invalid_message, input_message, 
 }
 
 fn input_area(is: InputState) {
-  eh.div([ a.class("col-6") ], 
+  eh.div([ a.class("col-6") ],
   [ eh.div([ a.class("card-body") ],
-    [ eh.h5([], [e.text("Input")] )
+    [ eh.h5([], [ e.text("Input") ] )
     , text_input("clock", "Clock:", is.clock_input, "Invalid time.", TimeInputChanged,  time.time_to_time_string)
     , eh.div([ a.class("row") ],
       [ eh.button([ a.class("col-5 btn btn-sm btn-outline-primary m-2") ], [ e.text("Add clock event") ])

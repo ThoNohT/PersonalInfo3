@@ -5,8 +5,8 @@ import util/option as opt
 
 /// Parses a positive int.
 pub fn parse_pos_int(str) -> Option(Int) {
-    int.base_parse(str, 10) 
-    |> option.from_result 
+    int.base_parse(str, 10)
+    |> option.from_result
     |> opt.when(fn(x) { x >= 0})
 }
 
