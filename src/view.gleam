@@ -1,6 +1,6 @@
 import gleam/float
 import gleam/list
-import gleam/option.{Some, is_some}
+import gleam/option
 
 import lustre/element as e
 import lustre/element/html as eh
@@ -13,7 +13,8 @@ import model.{
   type DayState, DayState,
   type InputState, InputState,
   type State, Loading, Loaded,
-  TimeInputChanged, HolidayInputChanged, TargetChanged}
+  TimeInputChanged, HolidayInputChanged, TargetChanged,
+  type Validated, is_valid}
 
 fn day_item_card(event: DayEvent) {
   let body = case event {
@@ -37,24 +38,24 @@ fn day_item_card(event: DayEvent) {
 fn day_item_list(day_state: DayState, is: InputState) {
   eh.div([ a.class("col-6") ], 
     [ eh.h5([], [e.text("Day")] )
-    , text_input("target", "Day target:", is.target_input, is.parsed_target |> is_some, "Invalid format.", TargetChanged, day_state.target |> time.duration_to_unparsed_format_string |> Some)
+    , text_input("target", "Day target:", is.target_input, "Invalid format.", TargetChanged, time.duration_to_unparsed_format_string)
     , eh.div([], day_state.events |> list.map(day_item_card))
   ])
 }
 
-fn text_input(name, label, value, is_valid, invalid_message, input_message, parsed_result) {
+fn text_input(name, label, value: Validated(a), invalid_message, input_message, parsed_to_string) {
   eh.div([ a.class("row container justify-content-start") ], 
   [ eh.label([ a.for(name <> "-input"), a.class("col-2 px-0 py-2")], [ e.text(label) ])
 
   , eh.div([ a.class("col-10") ],
     [ eh.input(
       [ a.type_("text") , a.class("form-control time-form") , a.id(name <> "-input")
-      , a.value(value)
-      , a.classes([ #("is-invalid", !is_valid), #("is-valid", is_valid) ] )
+      , a.value(value.input)
+      , a.classes([ #("is-invalid", !is_valid(value)), #("is-valid", is_valid(value)) ] )
       , ev.on_input(input_message)
       ])
     , eh.div([ a.class("invalid-feedback") ], [ e.text(invalid_message) ])
-    , eh.div([ a.class("valid-feedback") ], [ e.text(parsed_result |> option.unwrap("-")) ])
+    , eh.div([ a.class("valid-feedback") ], [ e.text(value.parsed |> option.map(parsed_to_string) |> option.unwrap("-")) ])
     ])
   ])
 }
@@ -63,12 +64,12 @@ fn input_area(is: InputState) {
   eh.div([ a.class("col-6") ], 
   [ eh.div([ a.class("card-body") ],
     [ eh.h5([], [e.text("Input")] )
-    , text_input("time", "Clock:", is.time_input, is.parsed_time |> is_some, "Invalid time.", TimeInputChanged, option.map(is.parsed_time, time.time_to_time_string))
+    , text_input("clock", "Clock:", is.clock_input, "Invalid time.", TimeInputChanged,  time.time_to_time_string)
     , eh.div([ a.class("row") ],
       [ eh.button([ a.class("col-5 btn btn-sm btn-outline-primary m-2") ], [ e.text("Add clock event") ])
       , eh.button([ a.class("col-5 btn btn-sm btn-outline-primary m-2") ], [ e.text("Toggle Home") ])
       ])
-    , text_input("holiday", "Holiday:", is.holiday_input, is.parsed_holiday |> is_some, "Invalid duration.", HolidayInputChanged, option.map(is.parsed_holiday, time.duration_to_unparsed_format_string))
+    , text_input("holiday", "Holiday:", is.holiday_input, "Invalid duration.", HolidayInputChanged, time.duration_to_unparsed_format_string)
     , eh.div([ a.class("row") ],
       [ eh.button([ a.class("col-5 btn btn-sm btn-outline-primary m-2") ], [ e.text("Gain Holiday") ])
       , eh.button([ a.class("col-5 btn btn-sm btn-outline-primary m-2") ], [ e.text("Use Holiday") ])
