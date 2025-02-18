@@ -36,7 +36,7 @@ fn update(model: State, msg: Msg) {
 
   case model, msg {
     Loading, LoadState -> {
-        let events = 
+        let events =
         [ ClockEvent(Time(1, 0), True, True)
         , HolidayBooking(12.5)
         ]
@@ -74,7 +74,7 @@ fn update(model: State, msg: Msg) {
 
 // fn checkbox_input(name) -> e.Element(a) {
 //   eh.div([],
-//     [ eh.div([], [ eh.input([a.type_("checkbox")]) ])
+//     [ eh.div([], [ eh.input([ a.type_("checkbox") ]) ])
 //     , eh.div([], [ e.text(name) ])
 //     ])
 // }

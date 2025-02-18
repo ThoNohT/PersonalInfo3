@@ -100,8 +100,8 @@ fn parse_unsplit_time(time: String) {
 /// a:b where a > 23 or b > 59 would naturally represent invalid times.
 pub fn parse_time(time: String) -> Option(Time) {
   case string.split(time, ":") {
-    [hr, min] -> parse_split_time(hr, min, True)
-    [time] -> parse_unsplit_time(time)
+    [ hr, min ] -> parse_split_time(hr, min, True)
+    [ time ] -> parse_unsplit_time(time)
     _ -> None
   }
 }
@@ -116,15 +116,15 @@ pub fn parse_time(time: String) -> Option(Time) {
 /// 1,5  -> 1:30
 pub fn parse_duration(input: String) -> Option(Duration) {
   case string.split(input, ":"), string.split(input, "."), string.split(input, ",") {
-    [hr, min], _, _ -> parse_split_time(hr, min, False) |> option.map(duration_from_time)
-    _, [int_, dec], _ 
-  | _, _, [int_, dec] -> {
+    [ hr, min ], _, _ -> parse_split_time(hr, min, False) |> option.map(duration_from_time)
+    _, [ int_, dec ], _
+  | _, _, [ int_, dec ] -> {
       use iint <- option.then(num.parse_pos_int(int_))
       use idec <- option.then(num.parse_pos_int(dec))
 
       Some(Duration(iint, float.round(60.0 *. num.decimalify(idec)), Some(DecimalFormat)))
     }
-    _, [num], [num2] if num == num2 -> num.parse_pos_int(num) |> option.map(Duration(_, 0, Some(DecimalFormat)))
+    _, [ num ], [ num2 ] if num == num2 -> num.parse_pos_int(num) |> option.map(Duration(_, 0, Some(DecimalFormat)))
     _, _, _ -> None
   }
 }
