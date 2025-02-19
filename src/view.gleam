@@ -8,17 +8,20 @@ import lustre/attribute as a
 
 import util/time
 import model.{
+  In, Out, Home, Office,
   type DayEvent, ClockEvent, HolidayBooking,
   type DayState, DayState,
   type InputState, InputState,
   type State, Loading, Loaded,
-  TimeInputChanged, HolidayInputChanged, TargetChanged, SelectListItem, DeleteListItem,
+  Gain, Use,
+  TimeInputChanged, HolidayInputChanged, TargetChanged,
+  SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
   type Validated, is_valid}
 
 fn day_item_card(selected_item: Option(Int), event: DayEvent) {
   let body = case event {
-    ClockEvent(_, time, _, in) -> {
-      let prefix = case in { True -> "In:" False -> "Out:" }
+    ClockEvent(_, time, _, kind) -> {
+      let prefix = case kind { In -> "In:" Out -> "Out:" }
       [ eh.b([ a.class("px-1") ], [ e.text(prefix) ])
       , eh.span([ a.class("px-1") ], [ e.text(time.time_to_time_string(time)) ])
       ]
@@ -29,28 +32,37 @@ fn day_item_card(selected_item: Option(Int), event: DayEvent) {
       ]
   }
 
+  let home_toggle = case event {
+    ClockEvent(..) as ce if ce.kind == In -> {
+      let txt = case ce.location { Home -> "Home" Office -> "Office" }
+      eh.button([ a.class("btn btn-outline-secondary btn-small me-1"), ev.on_click(ToggleHome(event.index)) ], [ e.text(txt) ])
+    }
+    _ -> e.none()
+  }
+
   eh.div(
     [ a.class("list-item border border-2 rounded-3 m-1 p-1 d-flex flex-row justify-content-between")
     , a.classes([ #("selected", Some(event.index) == selected_item) ])
     ],
     [ eh.div([ a.class("d-flex flex-row flex-grow-1"), ev.on_click(SelectListItem(event.index)) ], body)
-    , eh.button([ a.class("btn btn-outline-danger btn-small"), ev.on_click(DeleteListItem(event.index)) ], [ e.text("X") ]) 
+    , home_toggle
+    , eh.button([ a.class("btn btn-outline-danger btn-small"), ev.on_click(DeleteListItem(event.index)) ], [ e.text("X") ])
     ])
 }
 
 fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int)) {
   eh.div([ a.class("col-6") ],
     [ eh.h5([], [ e.text("Day") ] )
-    , text_input("target", "Day target:", is.target_input, "Invalid format.", TargetChanged, time.duration_to_unparsed_format_string)
+    , text_input("target", "Target:", is.target_input, time.duration_to_unparsed_format_string(day_state.target), TargetChanged, time.duration_to_unparsed_format_string)
     , eh.div([], day_state.events |> list.map(day_item_card(selected_index, _)))
     ])
 }
 
 fn text_input(name, label, value: Validated(a), invalid_message, input_message, parsed_to_string) {
-  eh.div([ a.class("row container justify-content-start") ],
-  [ eh.label([ a.for(name <> "-input"), a.class("col-2 px-0 py-2") ], [ e.text(label) ])
+  eh.div([ a.class("col-6 row container justify-content-start") ],
+  [ eh.label([ a.for(name <> "-input"), a.class("col-4 px-0 py-2") ], [ e.text(label) ])
 
-  , eh.div([ a.class("col-10") ],
+  , eh.div([ a.class("col-8") ],
     [ eh.input(
       [ a.type_("text") , a.class("form-control time-form") , a.id(name <> "-input")
       , a.value(value.input)
@@ -64,18 +76,20 @@ fn text_input(name, label, value: Validated(a), invalid_message, input_message, 
 }
 
 fn input_area(is: InputState) {
+  let btn = fn(msg, txt, enabled) {
+    eh.button([ a.class("col-2 btn btn-sm btn-outline-primary m-2 mb-4 mt-1"), ev.on_click(msg), a.disabled(!enabled) ], [ e.text(txt) ])
+  }
   eh.div([ a.class("col-6") ],
   [ eh.div([ a.class("card-body") ],
     [ eh.h5([], [ e.text("Input") ] )
-    , text_input("clock", "Clock:", is.clock_input, "Invalid time.", TimeInputChanged,  time.time_to_time_string)
     , eh.div([ a.class("row") ],
-      [ eh.button([ a.class("col-5 btn btn-sm btn-outline-primary m-2") ], [ e.text("Add clock event") ])
-      , eh.button([ a.class("col-5 btn btn-sm btn-outline-primary m-2") ], [ e.text("Toggle Home") ])
+      [ text_input("clock", "Clock:", is.clock_input, "Invalid time.", TimeInputChanged,  time.time_to_time_string)
+      , btn(AddClockEvent, "Add", is_valid(is.clock_input))
       ])
-    , text_input("holiday", "Holiday:", is.holiday_input, "Invalid duration.", HolidayInputChanged, time.duration_to_unparsed_format_string)
     , eh.div([ a.class("row") ],
-      [ eh.button([ a.class("col-5 btn btn-sm btn-outline-primary m-2") ], [ e.text("Gain Holiday") ])
-      , eh.button([ a.class("col-5 btn btn-sm btn-outline-primary m-2") ], [ e.text("Use Holiday") ])
+      [ text_input("holiday", "Holiday:", is.holiday_input, "Invalid duration.", HolidayInputChanged, time.duration_to_unparsed_format_string)
+      , btn(AddHolidayBooking(Gain), "Gain", is_valid(is.holiday_input))
+      , btn(AddHolidayBooking(Use), "Use", is_valid(is.holiday_input))
       ])
     ])
   ])

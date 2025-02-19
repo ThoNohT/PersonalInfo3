@@ -9,12 +9,14 @@ import lustre/effect
 
 import util/effect as ef
 import util/time.{Time, Duration, DecimalFormat, TimeFormat}
-import model.{ClockEvent, HolidayBooking,
+import model.{
+  Home, In,
+  ClockEvent, HolidayBooking,
   type DayState, DayState,
   type InputState, InputState,
   type State, Loading, Loaded,
-  type Msg, LoadState, TimeInputChanged, HolidayInputChanged, TargetChanged, SelectListItem,
-  Validated, validate, unvalidated}
+  type Msg, LoadState, TimeInputChanged, HolidayInputChanged, TargetChanged, SelectListItem, DeleteListItem, ToggleHome,
+  validate, unvalidated}
 import view.{view}
 
 fn dispatch_message(message message) -> effect.Effect(message) {
@@ -38,7 +40,7 @@ fn update(model: State, msg: Msg) {
   case model, msg {
     Loading, LoadState -> {
         let events =
-        [ ClockEvent(0, Time(1, 0), True, True)
+        [ ClockEvent(0, Time(1, 0), Home, In)
         , HolidayBooking(1, Duration(12, 5, Some(DecimalFormat)))
         , HolidayBooking(2, Duration(1, 0, Some(TimeFormat)))
         ]
@@ -46,10 +48,10 @@ fn update(model: State, msg: Msg) {
         let input_state = InputState(
           clock_input: unvalidated(),
           holiday_input: unvalidated(),
-          target_input: Validated(time.duration_to_decimal_string(current_state.target, 2), Some(current_state.target))
+          target_input: validate(time.duration_to_decimal_string(current_state.target, 2), time.parse_duration)
         )
-        let selected_event = list.first(events) |> option.from_result
-        ef.just(Loaded(today:, current_state:, selected_event:, week_target: 40.0, input_state:))
+        #(Loaded(today:, current_state:, selected_event: None, week_target: Duration(40, 0, Some(DecimalFormat)), input_state:)
+        , ef.dispatch(SelectListItem(0)))
     }
     Loaded(input_state: is, ..) as st, TimeInputChanged(new_time) -> {
       let input_state = InputState(..is,
@@ -76,7 +78,7 @@ fn update(model: State, msg: Msg) {
       }
       ef.just(Loaded(..st, selected_event:, input_state:))
     }
-    Loaded(current_state: cs, ..) as st, model.DeleteListItem(idx) -> {
+    Loaded(current_state: cs, ..) as st, DeleteListItem(idx) -> {
       let #(before, after) = cs.events |> list.split(idx)
       case after {
         [ _, ..af ] -> {
@@ -86,6 +88,18 @@ fn update(model: State, msg: Msg) {
         }
         _ -> ef.just(st)
       }
+    }
+    Loaded(current_state: cs, ..) as st, ToggleHome(idx) -> {
+      let toggle_home = fn(e) {
+        case e {
+          ClockEvent(index: index, location:loc, ..) as ce if idx == index ->
+            ClockEvent(..ce, location: model.switch_location(loc))
+          _ -> e
+        }
+      }
+      let new_events = cs.events |> list.map(toggle_home)
+      let current_state = DayState(..cs, events: new_events |> model.recalculate_events)
+      ef.just(Loaded(..st, current_state:))
     }
     _, _ -> ef.just(model)
   }
