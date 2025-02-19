@@ -1,4 +1,4 @@
-import gleam/option.{type Option}
+import gleam/option.{type Option, None}
 
 import birl.{type Day}
 import util/time.{type Time, Time, type Duration, Duration}
@@ -15,9 +15,11 @@ pub fn validate(input: String, with validation: fn(String) -> Option(a)) -> Vali
   Validated(input, validation(input))
 }
 
+pub fn unvalidated() -> Validated(a) { Validated("", None) }
+
 pub type DayEvent {
-  ClockEvent(time: Time, home: Bool, in: Bool)
-  HolidayBooking(amount: Float)
+  ClockEvent(index: Int, time: Time, home: Bool, in: Bool)
+  HolidayBooking(index: Int, amount: Duration)
 }
 
 pub type DayState {
@@ -34,7 +36,12 @@ pub type InputState {
 
 pub type State {
   Loading
-  Loaded(today: Day, current_state: DayState, week_target: Float, input_state: InputState)
+  Loaded(
+    today: Day,
+    current_state: DayState,
+    selected_event: Option(DayEvent),
+    week_target: Float,
+    input_state: InputState)
 }
 
 pub type Msg {
@@ -42,4 +49,5 @@ pub type Msg {
   TimeInputChanged(new_time: String)
   HolidayInputChanged(new_duration: String)
   TargetChanged(new_target: String)
+  SelectListItem(index: Int)
 }
