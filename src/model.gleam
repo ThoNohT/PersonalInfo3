@@ -18,8 +18,19 @@ pub fn validate(input: String, with validation: fn(String) -> Option(a)) -> Vali
 
 pub fn unvalidated() -> Validated(a) { Validated("", None) }
 
+pub type ClockLocation { Home Office }
+
+pub fn switch_location(location) {
+  case location {
+    Home -> Office
+    Office -> Home
+  }
+}
+
+pub type ClockKind { In Out }
+
 pub type DayEvent {
-  ClockEvent(index: Int, time: Time, home: Bool, in: Bool)
+  ClockEvent(index: Int, time: Time, location: ClockLocation, kind: ClockKind)
   HolidayBooking(index: Int, amount: Duration)
 }
 
@@ -41,9 +52,11 @@ pub type State {
     today: Day,
     current_state: DayState,
     selected_event: Option(DayEvent),
-    week_target: Float,
+    week_target: Duration,
     input_state: InputState)
 }
+
+pub type HolidayBookingKind { Gain Use }
 
 pub type Msg {
   LoadState
@@ -52,6 +65,9 @@ pub type Msg {
   TargetChanged(new_target: String)
   SelectListItem(index: Int)
   DeleteListItem(index: Int)
+  ToggleHome(index: Int)
+  AddClockEvent
+  AddHolidayBooking(kind: HolidayBookingKind)
 }
 
 pub fn recalculate_events(events: List(DayEvent)) -> List(DayEvent) {
