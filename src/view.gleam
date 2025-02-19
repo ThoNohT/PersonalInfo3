@@ -26,16 +26,18 @@ fn day_item_card(selected_item: Option(Int), event: DayEvent) {
       , eh.span([ a.class("px-1") ], [ e.text(time.time_to_time_string(time)) ])
       ]
     }
-    HolidayBooking(_, amount) ->
+    HolidayBooking(_, amount, kind) -> {
+      let suffix = case kind { Gain -> " gained" Use -> " used" }
       [ eh.b([ a.class("px-1") ], [ e.text("Holiday: ") ])
-      , eh.span([ a.class("px-1") ], [ e.text(time.duration_to_unparsed_format_string(amount)) ])
+      , eh.span([ a.class("px-1") ], [ e.text(time.duration_to_unparsed_format_string(amount) <> suffix) ])
       ]
+    }
   }
 
   let home_toggle = case event {
     ClockEvent(..) as ce if ce.kind == In -> {
       let txt = case ce.location { Home -> "Home" Office -> "Office" }
-      eh.button([ a.class("btn btn-outline-secondary btn-small me-1"), ev.on_click(ToggleHome(event.index)) ], [ e.text(txt) ])
+      eh.button([ a.class("btn btn-outline-secondary btn-sm me-1"), ev.on_click(ToggleHome(event.index)) ], [ e.text(txt) ])
     }
     _ -> e.none()
   }
@@ -46,7 +48,7 @@ fn day_item_card(selected_item: Option(Int), event: DayEvent) {
     ],
     [ eh.div([ a.class("d-flex flex-row flex-grow-1"), ev.on_click(SelectListItem(event.index)) ], body)
     , home_toggle
-    , eh.button([ a.class("btn btn-outline-danger btn-small"), ev.on_click(DeleteListItem(event.index)) ], [ e.text("X") ])
+    , eh.button([ a.class("btn btn-outline-danger btn-sm"), ev.on_click(DeleteListItem(event.index)) ], [ e.text("X") ])
     ])
 }
 

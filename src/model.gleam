@@ -29,9 +29,11 @@ pub fn switch_location(location) {
 
 pub type ClockKind { In Out }
 
+pub type HolidayBookingKind { Gain Use }
+
 pub type DayEvent {
   ClockEvent(index: Int, time: Time, location: ClockLocation, kind: ClockKind)
-  HolidayBooking(index: Int, amount: Duration)
+  HolidayBooking(index: Int, amount: Duration, kind: HolidayBookingKind)
 }
 
 pub type DayState {
@@ -56,7 +58,6 @@ pub type State {
     input_state: InputState)
 }
 
-pub type HolidayBookingKind { Gain Use }
 
 pub type Msg {
   LoadState
