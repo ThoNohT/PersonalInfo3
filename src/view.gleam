@@ -1,6 +1,5 @@
-import gleam/float
 import gleam/list
-import gleam/option
+import gleam/option.{type Option, Some}
 
 import lustre/element as e
 import lustre/element/html as eh
@@ -13,34 +12,41 @@ import model.{
   type DayState, DayState,
   type InputState, InputState,
   type State, Loading, Loaded,
-  TimeInputChanged, HolidayInputChanged, TargetChanged,
+  TimeInputChanged, HolidayInputChanged, TargetChanged, SelectListItem,
   type Validated, is_valid}
 
-fn day_item_card(event: DayEvent) {
-  let body = case event {
-    ClockEvent(time, _, in) ->  {
+fn day_item_card(selected_item: Option(Int), event: DayEvent) {
+  case event {
+    ClockEvent(idx, time, _, in) -> {
       let prefix = case in { True -> "In:" False -> "Out:" }
-      [ eh.b([ a.class("px-1") ], [ e.text(prefix) ])
-      , eh.span([ a.class("px-1") ], [ e.text(time.time_to_time_string(time)) ])
-      ]
+      eh.div(
+        [ a.class("list-item border border-2 rounded-3 m-1 p-1 d-flex flex-row")
+        , a.classes([ #("selected", Some(event.index) == selected_item) ])
+        , ev.on_click(SelectListItem(idx)) 
+        ],
+        [ eh.b([ a.class("px-1") ], [ e.text(prefix) ])
+        , eh.span([ a.class("px-1") ], [ e.text(time.time_to_time_string(time)) ])
+        ])
     }
-    HolidayBooking(amount) -> {
-      [ eh.b([ a.class("px-1") ], [ e.text("Holiday: ") ])
-      , eh.span([ a.class("px-1") ], [ e.text(float.to_string(amount)) ])
-      ]
+    HolidayBooking(idx, amount) -> {
+      eh.div(
+        [ a.class("list-item border border-2 rounded-3 m-1 p-1 d-flex flex-row")
+        , a.classes([ #("selected", Some(event.index) == selected_item) ])
+        , ev.on_click(SelectListItem(idx))
+        ],
+        [ eh.b([ a.class("px-1") ], [ e.text("Holiday: ") ])
+        , eh.span([ a.class("px-1") ], [ e.text(time.duration_to_unparsed_format_string(amount)) ])
+        ])
     }
   }
-  eh.div(
-    [ a.class("list-item border border-2 rounded-3 m-1 p-1 d-flex flex-row") ],
-    body)
 }
 
-fn day_item_list(day_state: DayState, is: InputState) {
+fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int)) {
   eh.div([ a.class("col-6") ],
     [ eh.h5([], [ e.text("Day") ] )
     , text_input("target", "Day target:", is.target_input, "Invalid format.", TargetChanged, time.duration_to_unparsed_format_string)
-    , eh.div([], day_state.events |> list.map(day_item_card))
-  ])
+    , eh.div([], day_state.events |> list.map(day_item_card(selected_index, _)))
+    ])
 }
 
 fn text_input(name, label, value: Validated(a), invalid_message, input_message, parsed_to_string) {
@@ -81,10 +87,13 @@ fn input_area(is: InputState) {
 pub fn view(model: State) {
   case model {
     Loading -> eh.div([], [ e.text("Loading...") ])
-    Loaded(_, st, _, is) -> eh.div([ a.class("container row mx-auto") ],
-      [ day_item_list(st, is)
-      , input_area(is),
-      ])
+    Loaded(_, st, se, _, is) -> {
+      let selected_index = se |> option.map(fn(e: DayEvent) { e.index })
+      eh.div([ a.class("container row mx-auto") ],
+        [ day_item_list(st, is, selected_index)
+        , input_area(is),
+        ])
+    }
   }
 }
 

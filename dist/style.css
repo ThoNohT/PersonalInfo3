@@ -16,3 +16,7 @@ div.list-item {
 div.list-item:hover {
   background-color: #E8E8E8;
 }
+
+div.list-item.selected {
+  background-color: #D8D8E8;
+}
