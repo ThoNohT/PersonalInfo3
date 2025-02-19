@@ -1,3 +1,4 @@
+import gleam/list
 import gleam/option.{type Option, None}
 
 import birl.{type Day}
@@ -50,4 +51,14 @@ pub type Msg {
   HolidayInputChanged(new_duration: String)
   TargetChanged(new_target: String)
   SelectListItem(index: Int)
+  DeleteListItem(index: Int)
+}
+
+pub fn recalculate_events(events: List(DayEvent)) -> List(DayEvent) {
+  events |> list.index_map(fn(e, i) {
+    case e {
+      ClockEvent(..) as c -> ClockEvent(..c, index: i)
+      HolidayBooking(..) as h -> HolidayBooking(..h, index: i)
+    }
+  })
 }

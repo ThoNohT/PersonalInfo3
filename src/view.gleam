@@ -12,33 +12,30 @@ import model.{
   type DayState, DayState,
   type InputState, InputState,
   type State, Loading, Loaded,
-  TimeInputChanged, HolidayInputChanged, TargetChanged, SelectListItem,
+  TimeInputChanged, HolidayInputChanged, TargetChanged, SelectListItem, DeleteListItem,
   type Validated, is_valid}
 
 fn day_item_card(selected_item: Option(Int), event: DayEvent) {
-  case event {
-    ClockEvent(idx, time, _, in) -> {
+  let body = case event {
+    ClockEvent(_, time, _, in) -> {
       let prefix = case in { True -> "In:" False -> "Out:" }
-      eh.div(
-        [ a.class("list-item border border-2 rounded-3 m-1 p-1 d-flex flex-row")
-        , a.classes([ #("selected", Some(event.index) == selected_item) ])
-        , ev.on_click(SelectListItem(idx)) 
-        ],
-        [ eh.b([ a.class("px-1") ], [ e.text(prefix) ])
-        , eh.span([ a.class("px-1") ], [ e.text(time.time_to_time_string(time)) ])
-        ])
+      [ eh.b([ a.class("px-1") ], [ e.text(prefix) ])
+      , eh.span([ a.class("px-1") ], [ e.text(time.time_to_time_string(time)) ])
+      ]
     }
-    HolidayBooking(idx, amount) -> {
-      eh.div(
-        [ a.class("list-item border border-2 rounded-3 m-1 p-1 d-flex flex-row")
-        , a.classes([ #("selected", Some(event.index) == selected_item) ])
-        , ev.on_click(SelectListItem(idx))
-        ],
-        [ eh.b([ a.class("px-1") ], [ e.text("Holiday: ") ])
-        , eh.span([ a.class("px-1") ], [ e.text(time.duration_to_unparsed_format_string(amount)) ])
-        ])
-    }
+    HolidayBooking(_, amount) ->
+      [ eh.b([ a.class("px-1") ], [ e.text("Holiday: ") ])
+      , eh.span([ a.class("px-1") ], [ e.text(time.duration_to_unparsed_format_string(amount)) ])
+      ]
   }
+
+  eh.div(
+    [ a.class("list-item border border-2 rounded-3 m-1 p-1 d-flex flex-row justify-content-between")
+    , a.classes([ #("selected", Some(event.index) == selected_item) ])
+    ],
+    [ eh.div([ a.class("d-flex flex-row flex-grow-1"), ev.on_click(SelectListItem(event.index)) ], body)
+    , eh.button([ a.class("btn btn-outline-danger btn-small"), ev.on_click(DeleteListItem(event.index)) ], [ e.text("X") ]) 
+    ])
 }
 
 fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int)) {
