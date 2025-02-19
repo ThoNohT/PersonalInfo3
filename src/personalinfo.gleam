@@ -10,12 +10,13 @@ import lustre/effect
 import util/effect as ef
 import util/time.{Time, Duration, DecimalFormat, TimeFormat}
 import model.{
-  Home, In,
+  Gain, Use, Home, Office, In,
   ClockEvent, HolidayBooking,
   type DayState, DayState,
   type InputState, InputState,
   type State, Loading, Loaded,
-  type Msg, LoadState, TimeInputChanged, HolidayInputChanged, TargetChanged, SelectListItem, DeleteListItem, ToggleHome,
+  type Msg, LoadState, TimeInputChanged, HolidayInputChanged, TargetChanged,
+  SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
   validate, unvalidated}
 import view.{view}
 
@@ -41,8 +42,8 @@ fn update(model: State, msg: Msg) {
     Loading, LoadState -> {
         let events =
         [ ClockEvent(0, Time(1, 0), Home, In)
-        , HolidayBooking(1, Duration(12, 5, Some(DecimalFormat)))
-        , HolidayBooking(2, Duration(1, 0, Some(TimeFormat)))
+        , HolidayBooking(1, Duration(12, 5, Some(DecimalFormat)), Gain)
+        , HolidayBooking(2, Duration(1, 0, Some(TimeFormat)), Use)
         ]
         let current_state = DayState(date: today, target: Duration(8, 0, Some(time.DecimalFormat)), events:)
         let input_state = InputState(
@@ -100,6 +101,29 @@ fn update(model: State, msg: Msg) {
       let new_events = cs.events |> list.map(toggle_home)
       let current_state = DayState(..cs, events: new_events |> model.recalculate_events)
       ef.just(Loaded(..st, current_state:))
+    }
+    Loaded(current_state: cs, input_state: is, ..) as st, AddClockEvent -> {
+      case is.clock_input.parsed {
+        Some(time) -> {
+          // TODO: Check if the same time is already in the list.
+          let new_event = ClockEvent(list.length(cs.events), time, Office, In)
+          let events = [ new_event, ..cs.events ] |> model.recalculate_events
+          let current_state = DayState(..cs, events:)
+          ef.just(Loaded(..st, current_state:))
+        }
+        None -> ef.just(st)
+      }
+    }
+    Loaded(current_state: cs, input_state: is, ..) as st, AddHolidayBooking(kind) -> {
+      case is.holiday_input.parsed {
+        Some(duration) -> {
+          let new_event = HolidayBooking(list.length(cs.events), duration, kind)
+          let events = [ new_event, ..cs.events ] |> model.recalculate_events
+          let current_state = DayState(..cs, events:)
+          ef.just(Loaded(..st, current_state:))
+        }
+        None -> ef.just(st)
+      }
     }
     _, _ -> ef.just(model)
   }
