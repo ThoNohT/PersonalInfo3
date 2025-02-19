@@ -76,6 +76,17 @@ fn update(model: State, msg: Msg) {
       }
       ef.just(Loaded(..st, selected_event:, input_state:))
     }
+    Loaded(current_state: cs, ..) as st, model.DeleteListItem(idx) -> {
+      let #(before, after) = cs.events |> list.split(idx)
+      case after {
+        [ _, ..af ] -> {
+          // Takes out the element at idx.
+          let current_state = DayState(..cs, events: list.append(before, af) |> model.recalculate_events)
+          #(Loaded(..st, current_state:), ef.dispatch(SelectListItem(idx - 1)))
+        }
+        _ -> ef.just(st)
+      }
+    }
     _, _ -> ef.just(model)
   }
 }
