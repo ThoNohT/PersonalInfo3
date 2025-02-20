@@ -1,20 +1,17 @@
-import gleam/option.{type Option}
+import util/prim
+import gleam/option.{type Option, Some, None}
 import gleam/int
-
-import util/option as opt
 
 /// Parses a positive int.
 pub fn parse_pos_int(str) -> Option(Int) {
-    int.base_parse(str, 10)
-    |> option.from_result
-    |> opt.when(fn(x) { x >= 0})
+    use parsed <- option.then(int.base_parse(str, 10) |> option.from_result)
+    use _ <- prim.check(None, parsed >= 0)
+    Some(parsed)
 }
 
 fn magnitude_go(acc: Int, val: Int) {
-  case val > 0 {
-    True -> magnitude_go(acc * 10, val / 10)
-    False -> acc
-  }
+  use _ <- prim.check(acc, val > 0)
+  magnitude_go(acc * 10, val / 10)
 }
 
 /// Returns 10 to the power of the number of digits in a number.

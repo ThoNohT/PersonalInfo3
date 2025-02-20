@@ -40,6 +40,14 @@ pub type DayState {
   DayState(date: Day, target: Duration, events: List(DayEvent))
 }
 
+pub fn daystate_has_clock_event_at(ds: DayState, time: Time) {
+  let is_ce_at = fn(ce: DayEvent) {
+    case ce { ClockEvent(time: cet, ..) -> cet == time _ -> False }
+  }
+
+  ds.events |> list.any(is_ce_at)
+}
+
 pub type InputState {
   InputState(
     clock_input: Validated(Time),
