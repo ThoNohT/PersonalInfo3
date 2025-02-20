@@ -18,7 +18,7 @@ import model.{
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
   type Validated, is_valid}
 
-fn day_item_card(selected_item: Option(Int), event: DayEvent) {
+fn day_item_card(selected_index: Option(Int), event: DayEvent) {
   let body = case event {
     ClockEvent(_, time, _, kind) -> {
       let prefix = case kind { In -> "In:" Out -> "Out:" }
@@ -29,7 +29,7 @@ fn day_item_card(selected_item: Option(Int), event: DayEvent) {
     HolidayBooking(_, amount, kind) -> {
       let suffix = case kind { Gain -> " gained" Use -> " used" }
       [ eh.b([ a.class("px-1") ], [ e.text("Holiday: ") ])
-      , eh.span([ a.class("px-1") ], [ e.text(time.duration_to_unparsed_format_string(amount) <> suffix) ])
+      , eh.span([ a.class("px-1") ], [ e.text(time.duration_to_time_string(amount) <> suffix) ])
       ]
     }
   }
@@ -44,7 +44,7 @@ fn day_item_card(selected_item: Option(Int), event: DayEvent) {
 
   eh.div(
     [ a.class("list-item border border-2 rounded-3 m-1 p-1 d-flex flex-row justify-content-between")
-    , a.classes([ #("selected", Some(event.index) == selected_item) ])
+    , a.classes([ #("selected", Some(event.index) == selected_index) ])
     ],
     [ eh.div([ a.class("d-flex flex-row flex-grow-1"), ev.on_click(SelectListItem(event.index)) ], body)
     , home_toggle
@@ -79,7 +79,7 @@ fn text_input(name, label, value: Validated(a), invalid_message, input_message, 
 
 fn input_area(is: InputState) {
   let btn = fn(msg, txt, enabled) {
-    eh.button([ a.class("col-2 btn btn-sm btn-outline-primary m-2 mb-4 mt-1"), ev.on_click(msg), a.disabled(!enabled) ], [ e.text(txt) ])
+    eh.button([ a.class("col-2 btn btn-sm btn-outline-primary m-1 mb-4"), ev.on_click(msg), a.disabled(!enabled) ], [ e.text(txt) ])
   }
   eh.div([ a.class("col-6") ],
   [ eh.div([ a.class("card-body") ],

@@ -1,3 +1,4 @@
+import util/prim
 import gleam/option.{type Option, Some, None}
 import gleam/string
 import gleam/int
@@ -61,10 +62,10 @@ fn parse_split_time(hour: String, minute: String, limit_hours: Bool) {
   use int_hr <- option.then(num.parse_pos_int(hour))
   use int_min <- option.then(num.parse_pos_int(minute))
 
-  case int_hr, int_min {
-    h, m if { h < 24 || !limit_hours } && m < 60 -> Time(h, m) |> Some
-    _, _ -> None
-  }
+  use _ <- prim.check(None, int_hr < 24 || !limit_hours)
+  use _ <- prim.check(None, int_min < 60)
+
+  Time(int_hr, int_min) |> Some
 }
 
 fn parse_unsplit_time(time: String) {

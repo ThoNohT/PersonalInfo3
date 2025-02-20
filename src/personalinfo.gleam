@@ -98,32 +98,27 @@ fn update(model: State, msg: Msg) {
           _ -> e
         }
       }
+
       let new_events = cs.events |> list.map(toggle_home)
       let current_state = DayState(..cs, events: new_events |> model.recalculate_events)
       ef.just(Loaded(..st, current_state:))
     }
     Loaded(current_state: cs, input_state: is, ..) as st, AddClockEvent -> {
-      case is.clock_input.parsed {
-        Some(time) -> {
-          // TODO: Check if the same time is already in the list.
-          let new_event = ClockEvent(list.length(cs.events), time, Office, In)
-          let events = [ new_event, ..cs.events ] |> model.recalculate_events
-          let current_state = DayState(..cs, events:)
-          ef.just(Loaded(..st, current_state:))
-        }
-        None -> ef.just(st)
-      }
+      use time <- ef.then(st, is.clock_input.parsed)
+      use _ <- ef.check(st, model.daystate_has_clock_event_at(cs, time))
+      
+      let new_event = ClockEvent(list.length(cs.events), time, Office, In)
+      let events = [ new_event, ..cs.events ] |> model.recalculate_events
+      let current_state = DayState(..cs, events:)
+      ef.just(Loaded(..st, current_state:))
     }
     Loaded(current_state: cs, input_state: is, ..) as st, AddHolidayBooking(kind) -> {
-      case is.holiday_input.parsed {
-        Some(duration) -> {
-          let new_event = HolidayBooking(list.length(cs.events), duration, kind)
-          let events = [ new_event, ..cs.events ] |> model.recalculate_events
-          let current_state = DayState(..cs, events:)
-          ef.just(Loaded(..st, current_state:))
-        }
-        None -> ef.just(st)
-      }
+      use duration <- ef.then(st, is.holiday_input.parsed)
+
+      let new_event = HolidayBooking(list.length(cs.events), duration, kind)
+      let events = [ new_event, ..cs.events ] |> model.recalculate_events
+      let current_state = DayState(..cs, events:)
+      ef.just(Loaded(..st, current_state:))
     }
     _, _ -> ef.just(model)
   }
