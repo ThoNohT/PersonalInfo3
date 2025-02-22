@@ -3,9 +3,9 @@ div.list-item {
 }
 
 div.list-item:hover {
-  background-color: #E8E8E8;
+  background-color: #181818;
 }
 
 div.list-item.selected {
-  background-color: #D8D8E8;
+  background-color: #181828;
 }
