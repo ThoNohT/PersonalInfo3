@@ -105,7 +105,7 @@ fn update(model: State, msg: Msg) {
     }
     Loaded(current_state: cs, input_state: is, ..) as st, AddClockEvent -> {
       use time <- ef.then(st, is.clock_input.parsed)
-      use _ <- ef.check(st, model.daystate_has_clock_event_at(cs, time))
+      use _ <- ef.check(st, !model.daystate_has_clock_event_at(cs, time))
       
       let new_event = ClockEvent(list.length(cs.events), time, Office, In)
       let events = [ new_event, ..cs.events ] |> model.recalculate_events
