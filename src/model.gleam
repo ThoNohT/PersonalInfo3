@@ -86,8 +86,8 @@ pub fn recalculate_events(events: List(DayEvent)) -> List(DayEvent) {
 
   let compare_event = fn(a: DayEvent, b : DayEvent) {
     case a, b {
-      ClockEvent(..), HolidayBooking(..) -> Gt
-      HolidayBooking(..), ClockEvent(..) -> Lt
+      ClockEvent(..), HolidayBooking(..) -> Lt
+      HolidayBooking(..), ClockEvent(..) -> Gt
       ClockEvent(time: t1, ..), ClockEvent(time: t2, ..) -> time.compare_time(t1, t2)
       HolidayBooking(kind: Gain, ..), HolidayBooking(kind: Use, ..) -> Lt
       HolidayBooking(kind: Use, ..), HolidayBooking(kind: Gain, ..) -> Gt
