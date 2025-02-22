@@ -44,7 +44,7 @@ fn update(model: State, msg: Msg) {
         [ ClockEvent(0, Time(1, 0), Home, In)
         , HolidayBooking(1, Duration(12, 5, Some(DecimalFormat)), Gain)
         , HolidayBooking(2, Duration(1, 0, Some(TimeFormat)), Use)
-        ]
+        ] |> model.recalculate_events
         let current_state = DayState(date: today, target: Duration(8, 0, Some(time.DecimalFormat)), events:)
         let input_state = InputState(
           clock_input: unvalidated(),
@@ -85,7 +85,7 @@ fn update(model: State, msg: Msg) {
         [ _, ..af ] -> {
           // Takes out the element at idx.
           let current_state = DayState(..cs, events: list.append(before, af) |> model.recalculate_events)
-          #(Loaded(..st, current_state:), ef.dispatch(SelectListItem(idx - 1)))
+          ef.just(Loaded(..st, current_state:))
         }
         _ -> ef.just(st)
       }
@@ -106,7 +106,7 @@ fn update(model: State, msg: Msg) {
     Loaded(current_state: cs, input_state: is, ..) as st, AddClockEvent -> {
       use time <- ef.then(st, is.clock_input.parsed)
       use _ <- ef.check(st, !model.daystate_has_clock_event_at(cs, time))
-      
+
       let new_event = ClockEvent(list.length(cs.events), time, Office, In)
       let events = [ new_event, ..cs.events ] |> model.recalculate_events
       let current_state = DayState(..cs, events:)

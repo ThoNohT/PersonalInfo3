@@ -1,9 +1,10 @@
-import util/prim
 import gleam/option.{type Option, Some, None}
 import gleam/string
 import gleam/int
 import gleam/float
+import gleam/order.{type Order, Eq}
 
+import util/prim
 import util/numbers as num
 
 /// The different ways Duration can be formatted.
@@ -28,9 +29,25 @@ pub fn time_to_time_string(time: Time) -> String {
   string.pad_start(int.to_string(time.minutes), 2, "0")
 }
 
+/// Compares two Time values.
+pub fn compare_time(a: Time, b: Time) -> Order {
+  case int.compare(a.hours, b.hours) {
+    Eq -> int.compare(a.minutes, b.minutes)
+    other -> other
+  }
+}
+
 /// A duration in hours and minutes.
 pub type Duration {
   Duration(hours: Int, minutes: Int, parsed_from: Option(TimeFormat))
+}
+
+/// Compares two Duration values.
+pub fn compare_duration(a: Duration, b: Duration) -> Order {
+  case int.compare(a.hours, b.hours) {
+    Eq -> int.compare(a.minutes, b.minutes)
+    other -> other
+  }
 }
 
 /// Converts a Duration to a string in the format h:mm.
