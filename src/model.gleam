@@ -1,5 +1,5 @@
 import gleam/list
-import gleam/option.{type Option, None}
+import gleam/option.{type Option, Some, None}
 import gleam/order.{Gt, Lt}
 
 import birl.{type Day}
@@ -38,6 +38,17 @@ pub type DayEvent {
   HolidayBooking(index: Int, amount: Duration, kind: HolidayBookingKind)
 }
 
+pub fn compare_day_event(a: DayEvent, b : DayEvent) -> order.Order {
+  case a, b {
+    ClockEvent(..), HolidayBooking(..) -> Lt
+    HolidayBooking(..), ClockEvent(..) -> Gt
+    ClockEvent(time: t1, ..), ClockEvent(time: t2, ..) -> time.compare(t1, t2)
+    HolidayBooking(kind: Gain, ..), HolidayBooking(kind: Use, ..) -> Lt
+    HolidayBooking(kind: Use, ..), HolidayBooking(kind: Gain, ..) -> Gt
+    HolidayBooking(amount: a1, ..), HolidayBooking(amount: a2, ..) -> duration.compare(a1, a2)
+  }
+}
+
 pub type DayStatistics {
   DayStatistics(
     eta: Duration,
@@ -51,11 +62,13 @@ pub type DayState {
 
 
 pub fn daystate_has_clock_event_at(ds: DayState, time: Time) {
-  let is_ce_at = fn(ce: DayEvent) {
-    case ce { ClockEvent(time: cet, ..) -> cet == time _ -> False }
-  }
-
+  let is_ce_at = fn(ce: DayEvent) { case ce { ClockEvent(time: cet, ..) -> cet == time _ -> False } }
   ds.events |> list.any(is_ce_at)
+}
+
+pub fn daystate_has_clock_events(ds: DayState) {
+  let is_ce = fn(ce) { case ce { ClockEvent(..) -> True _ -> False } }
+  ds.events |> list.any(is_ce)
 }
 
 pub type InputState {
@@ -91,25 +104,11 @@ pub type Msg {
 }
 
 pub fn recalculate_events(events: List(DayEvent)) -> List(DayEvent) {
-  // 1. Order events by -> Holiday, ClockEvent ; Time ascending.
-  // 2. Odd clock events are in, even are out.
-
-  let compare_event = fn(a: DayEvent, b : DayEvent) {
-    case a, b {
-      ClockEvent(..), HolidayBooking(..) -> Lt
-      HolidayBooking(..), ClockEvent(..) -> Gt
-      ClockEvent(time: t1, ..), ClockEvent(time: t2, ..) -> time.compare(t1, t2)
-      HolidayBooking(kind: Gain, ..), HolidayBooking(kind: Use, ..) -> Lt
-      HolidayBooking(kind: Use, ..), HolidayBooking(kind: Gain, ..) -> Gt
-      HolidayBooking(amount: a1, ..), HolidayBooking(amount: a2, ..) -> duration.compare(a1, a2)
-    }
-  }
-
   let calc_kind = fn(i) { case i % 2 { 0 -> In _ -> Out } }
 
-  let folder = fn(acc, elem: DayEvent) {
+  let folder = fn(acc, event: DayEvent) {
     let #(gc, cc, acc) = acc
-    case elem {
+    case event {
       HolidayBooking(..) as h ->
         #(gc + 1, cc, [ HolidayBooking(..h, index: gc), ..acc ])
       ClockEvent(..) as c ->
@@ -118,8 +117,67 @@ pub fn recalculate_events(events: List(DayEvent)) -> List(DayEvent) {
   }
 
   events
-  |> list.sort(compare_event)
+  // 1. Order events by -> Holiday, ClockEvent ; Time ascending.
+  |> list.sort(compare_day_event)
+  // 2. Odd clock events are in, even are out.
   |> list.fold(#(0, 0, []), folder)
   |> fn(x) { x.2 }
   |> list.reverse
+}
+
+pub fn recalculate_statistics(st: DayState) -> DayState {
+  let add_hours = fn(stats: DayStatistics, location: ClockLocation, amount: Duration) {
+    case location {
+        Office -> DayStatistics(..stats,
+            total: duration.add(stats.total, amount),
+            total_office: duration.add(stats.total_office, amount))
+        Home -> DayStatistics(..stats,
+            total: duration.add(stats.total, amount),
+            total_home: duration.add(stats.total_home, amount))
+    }
+  }
+
+  let folder = fn(acc: #(DayStatistics, Option(#(ClockLocation, Time))), event: DayEvent) {
+    case event {
+      HolidayBooking(_, dur, Gain) ->
+        #(DayStatistics(..acc.0, remaining_holiday: duration.add(acc.0.remaining_holiday, dur))
+         , acc.1)
+      HolidayBooking(_, dur, Use) ->
+        #(DayStatistics(..acc.0, remaining_holiday: duration.subtract(acc.0.remaining_holiday, dur))
+         , acc.1)
+
+      // Here, we assume clock events are always alternating In and then Out, this should be true if before calling
+      // this fuction, recalculate_events was called. Otherwise, we will fail.
+      ClockEvent(_, time, loc, In) -> {
+        let assert None = acc.1
+        #(acc.0, Some(#(loc, time)))
+      }
+      ClockEvent(_, time, _, Out) -> {
+        // Location can be ignored here. We will use the location of the clock-in event.
+        let assert Some(state) = acc.1
+        #(add_hours(acc.0, state.0, duration.between(from: state.1, to: time)), None)
+      }
+    }
+  }
+
+  // Determine the totals.
+  let stats = DayStatistics(duration.zero(), duration.zero(), duration.zero(), duration.zero(), duration.zero())
+  let stats = st.events |> list.fold(#(stats, None), folder)
+
+  // Add the time between the last event and now, if the last event was an in-event.
+  let stats = case stats.1, time.today() == st.date {
+    Some(state), True ->
+      add_hours(stats.0, state.0, duration.between(from: state.1, to: time.now()))
+    _, _ -> stats.0
+  }
+
+  // If we had lunch, add half an hour to the target, but only if there are any bookings this day.
+  let actual_target = case st.lunch, daystate_has_clock_events(st) {
+    True, True -> duration.add(st.target, Duration(0, 30, None))
+    _, _ -> st.target
+  }
+
+  let stats = DayStatistics(..stats, eta: duration.subtract(actual_target, stats.total))
+
+  DayState(..st, stats: stats)
 }

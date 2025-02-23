@@ -3,6 +3,8 @@ import gleam/string
 import gleam/int
 import gleam/order.{type Order, Eq}
 
+import birl
+
 import util/prim
 import util/numbers as num
 
@@ -11,7 +13,17 @@ pub type Time {
   Time(hours: Int, minutes: Int)
 }
 
+/// Returns a time at 00:00.
 pub fn zero() { Time(0, 0) }
+
+/// Returns the current time.
+pub fn now() {
+  let now = birl.now() |> birl.get_time_of_day()
+  Time(now.hour, now.minute)
+}
+
+/// Gets the current day.
+pub fn today() { birl.now() |> birl.get_day() }
 
 /// Converts a Time to a string in the format hh:mm.
 pub fn to_string(time: Time) -> String {
