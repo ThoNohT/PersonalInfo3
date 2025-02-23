@@ -174,6 +174,7 @@ pub fn recalculate_statistics(st: DayState) -> DayState {
   // If lunch is included, assume half an hour of clocked time doesn't exist. Take it from the longest period
   // of office or home, but prefer office if this cannot be determined. If no clock events, then don't
   // take any lunch away, since we didn't work at all.
+  // TODO: "Total: -1:42 / -0.3" -> Here the -0.3 is correct. But something is going wrong with subtracting 0.5 hours from a time less than 0.5 hours.
   let stats = case st.lunch, daystate_has_clock_events(st) {
     True, True -> {
       let half_hour = Duration(0, 30, None)

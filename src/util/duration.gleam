@@ -5,6 +5,7 @@ import gleam/result
 import gleam/float
 import gleam/order.{type Order, Eq}
 
+import util/prim
 import util/numbers as num
 import util/time
 
@@ -42,6 +43,12 @@ pub fn subtract(a: Duration, b: Duration) {
   let hrs_overflow = case new_mins < 0 { False -> 0 True -> 1 }
   let parsed_from = option.or(a.parsed_from, b.parsed_from)
   Duration(new_hrs - hrs_overflow, int.modulo(new_mins, 60) |> result.unwrap(0), parsed_from)
+}
+
+/// Adds the specified duration to the specified time to provide a later moment.
+/// If the time would cycle to another day, None is returned.
+pub fn later(time: time.Time, duration: Duration) -> Option(time.Time) {
+  to_time(add(from_time(time), duration))
 }
 
 pub fn zero() { Duration(0, 0, None) }
@@ -83,6 +90,13 @@ pub fn to_string(duration: Duration) -> String {
 
 /// Converts a Time to a Duration.
 fn from_time(time: time.Time) { Duration(time.hours, time.minutes, Some(TimeFormat)) }
+
+/// Converts a Duration to a Time, returns None if the duration is 24 hours or higher, or if it is negative.
+fn to_time(duration: Duration) -> Option(time.Time) {
+  use _ <- prim.check(None, duration.hours < 24)
+  use _ <- prim.check(None, is_positive(duration))
+  Some(time.Time(duration.hours, duration.minutes))
+}
 
 /// Retuns the duration between the from and to times.
 /// Fails if the from time is after the to time.

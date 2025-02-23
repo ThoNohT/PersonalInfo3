@@ -59,13 +59,21 @@ fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int
     False -> "Complete"
   }
 
+  let end_text =
+    case duration.is_positive(day_state.stats.eta),
+         duration.later(time.now(), day_state.stats.eta) {
+    True, Some(done_at) -> [ eh.br([]) , e.text(time.to_string(done_at)) ]
+    _, _ -> []
+
+  }
+
   eh.div([ a.class("col-6") ],
     [ eh.h3([ a.class("text-center") ], [ e.text("Day") ] )
     , eh.hr([])
     , eh.div([ a.class("row") ],
       [ text_input("target", "Target:", is.target_input, duration.to_unparsed_format_string(day_state.target), TargetChanged, duration.to_unparsed_format_string)
       , check_input("lunch", "Lunch", day_state.lunch, LunchChanged)
-      , eh.div([ a.class("col-3 p-2") ], [ eh.b([], [ e.text("ETA: ") ]), e.text(eta_text) ])
+      , eh.div([ a.class("col-3 p-2") ], [ eh.b([], [ e.text("ETA: ") ]), e.text(eta_text) , ..end_text ])
       ])
     , eh.div([], day_state.events |> list.map(day_item_card(selected_index, _)))
     ])
