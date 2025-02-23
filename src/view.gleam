@@ -14,7 +14,7 @@ import model.{
   type InputState, InputState,
   type State, Loading, Loaded,
   Gain, Use,
-  TimeInputChanged, HolidayInputChanged, TargetChanged,
+  TimeInputChanged, HolidayInputChanged, TargetChanged, LunchChanged,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
   type Validated, is_valid}
 
@@ -57,7 +57,8 @@ fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int
     [ eh.h5([], [ e.text("Day") ] )
     , eh.div([ a.class("row") ],
       [ text_input("target", "Target:", is.target_input, time.duration_to_unparsed_format_string(day_state.target), TargetChanged, time.duration_to_unparsed_format_string)
-      , eh.div([ a.class("col-6 p-2") ], [ eh.b([], [ e.text("ETA: ") ]), e.text("TODO") ])
+      , check_input("lunch", "Lunch", day_state.lunch, LunchChanged)
+      , eh.div([ a.class("col-3 p-2") ], [ eh.b([], [ e.text("ETA: ") ]), e.text("TODO") ])
       ])
     , eh.div([], day_state.events |> list.map(day_item_card(selected_index, _)))
     ])
@@ -77,6 +78,18 @@ fn text_input(name, label, value: Validated(a), invalid_message, input_message, 
     , eh.div([ a.class("invalid-feedback") ], [ e.text(invalid_message) ])
     , eh.div([ a.class("valid-feedback") ], [ e.text(value.parsed |> option.map(parsed_to_string) |> option.unwrap("-")) ])
     ])
+  ])
+}
+
+fn check_input(name, label, value, input_message) {
+  eh.div([ a.class("col-3 row container justify-content-start") ],
+  [ eh.div([ a.class("col-8") ],
+    [ eh.input(
+      [ a.type_("checkbox") , a.id(name <> "-input")
+      , a.checked(value)
+      , ev.on_check(input_message)
+    ])
+  , eh.label([ a.for(name <> "-input"), a.class("col-4 p-2") ], [ e.text(label) ])  ])
   ])
 }
 
