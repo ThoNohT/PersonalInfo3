@@ -8,7 +8,8 @@ import lustre
 import lustre/effect
 
 import util/effect as ef
-import util/time.{Time, Duration, DecimalFormat, TimeFormat}
+import util/time.{Time}
+import util/duration.{Duration, DecimalFormat, TimeFormat}
 import model.{
   Gain, Use, Home, Office, In,
   ClockEvent, HolidayBooking,
@@ -45,28 +46,28 @@ fn update(model: State, msg: Msg) {
         , HolidayBooking(1, Duration(12, 5, Some(DecimalFormat)), Gain)
         , HolidayBooking(2, Duration(1, 0, Some(TimeFormat)), Use)
         ] |> model.recalculate_events
-        let stats = DayStatistics(eta: time.duration_zero(), total: time.duration_zero(), total_office: time.duration_zero(), total_home: time.duration_zero(), remaining_holiday: time.duration_zero())
-        let current_state = DayState(date: today, target: Duration(8, 0, Some(time.DecimalFormat)), lunch: True, events:, stats:)
+        let stats = DayStatistics(eta: duration.zero(), total: duration.zero(), total_office: duration.zero(), total_home: duration.zero(), remaining_holiday: duration.zero())
+        let current_state = DayState(date: today, target: Duration(8, 0, Some(DecimalFormat)), lunch: True, events:, stats:)
         let input_state = InputState(
           clock_input: unvalidated(),
           holiday_input: unvalidated(),
-          target_input: validate(time.duration_to_decimal_string(current_state.target, 2), time.parse_duration)
+          target_input: validate(duration.to_decimal_string(current_state.target, 2), duration.parse)
         )
         #(Loaded(today:, current_state:, selected_event: None, week_target: Duration(40, 0, Some(DecimalFormat)), input_state:)
         , ef.dispatch(SelectListItem(0)))
     }
     Loaded(input_state: is, ..) as st, TimeInputChanged(new_time) -> {
       let input_state = InputState(..is,
-        clock_input: validate(string.slice(new_time, 0, 5), time.parse_time))
+        clock_input: validate(string.slice(new_time, 0, 5), time.parse))
       ef.just(Loaded(..st, input_state:))
     }
     Loaded(input_state: is, ..) as st, HolidayInputChanged(new_duration) -> {
       let input_state = InputState(..is,
-        holiday_input: validate(string.slice(new_duration, 0, 6), time.parse_duration))
+        holiday_input: validate(string.slice(new_duration, 0, 6), duration.parse))
       ef.just(Loaded(..st, input_state:))
     }
     Loaded(current_state: cs, input_state: is, ..) as st, TargetChanged(new_target) -> {
-      let target_input = validate(string.slice(new_target, 0, 6), time.parse_duration)
+      let target_input = validate(string.slice(new_target, 0, 6), duration.parse)
       let input_state = InputState(..is, target_input:)
       let current_state = case target_input.parsed { None -> cs Some(target) -> DayState(..cs, target:) }
       ef.just(Loaded(..st, current_state:, input_state:))
@@ -78,8 +79,8 @@ fn update(model: State, msg: Msg) {
     Loaded(current_state: cs, input_state: is, ..) as st, SelectListItem(idx) -> {
       let selected_event = cs.events |> list.drop(idx) |> list.first |> option.from_result
       let input_state = case selected_event {
-        Some(ClockEvent(..) as ce) -> InputState(..is, clock_input: validate(time.time_to_time_string(ce.time), time.parse_time))
-        Some(HolidayBooking(..) as hb) -> InputState(..is, holiday_input: validate(time.duration_to_time_string(hb.amount), time.parse_duration))
+        Some(ClockEvent(..) as ce) -> InputState(..is, clock_input: validate(time.to_string(ce.time), time.parse))
+        Some(HolidayBooking(..) as hb) -> InputState(..is, holiday_input: validate(duration.to_time_string(hb.amount), duration.parse))
         None -> is
       }
       ef.just(Loaded(..st, selected_event:, input_state:))
