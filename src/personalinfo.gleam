@@ -6,10 +6,10 @@ import lustre
 import lustre/effect
 
 import util/effect as ef
-import util/time.{Time}
-import util/duration.{Duration, DecimalFormat, TimeFormat}
+import util/time
+import util/duration.{Duration, DecimalFormat}
 import model.{
-  Gain, Use, Home, Office, In,
+  Office, In,
   ClockEvent, HolidayBooking,
   type DayState, DayState, DayStatistics,
   type InputState, InputState,
@@ -39,11 +39,7 @@ fn update(model: State, msg: Msg) {
 
   case model, msg {
     Loading, LoadState -> {
-        let events =
-        [ ClockEvent(0, Time(1, 0), Home, In)
-        , HolidayBooking(1, Duration(12, 5, Some(DecimalFormat)), Gain)
-        , HolidayBooking(2, Duration(1, 0, Some(TimeFormat)), Use)
-        ] |> model.recalculate_events
+        let events = []
         let stats = DayStatistics(eta: duration.zero(), total: duration.zero(), total_office: duration.zero(), total_home: duration.zero(), remaining_holiday: duration.zero())
         let current_state = DayState(date: today, target: Duration(8, 0, Some(DecimalFormat)), lunch: True, events:, stats:) |> model.recalculate_statistics
         let input_state = InputState(
