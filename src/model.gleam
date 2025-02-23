@@ -171,13 +171,25 @@ pub fn recalculate_statistics(st: DayState) -> DayState {
     _, _ -> stats.0
   }
 
-  // If we had lunch, add half an hour to the target, but only if there are any bookings this day.
-  let actual_target = case st.lunch, daystate_has_clock_events(st) {
-    True, True -> duration.add(st.target, Duration(0, 30, None))
-    _, _ -> st.target
+  // If lunch is included, assume half an hour of clocked time doesn't exist. Take it from the longest period
+  // of office or home, but prefer office if this cannot be determined. If no clock events, then don't
+  // take any lunch away, since we didn't work at all.
+  let stats = case st.lunch, daystate_has_clock_events(st) {
+    True, True -> {
+      let half_hour = Duration(0, 30, None)
+      case duration.compare(stats.total_office, stats.total_home) {
+        Lt -> DayStatistics(..stats,
+          total: duration.subtract(stats.total, half_hour),
+          total_home: duration.subtract(stats.total_home, half_hour))
+        _ -> DayStatistics(..stats,
+          total: duration.subtract(stats.total, half_hour),
+          total_office: duration.subtract(stats.total_office, half_hour))
+      }
+    }
+    _, _ -> stats
   }
 
-  let stats = DayStatistics(..stats, eta: duration.subtract(actual_target, stats.total))
+  let stats = DayStatistics(..stats, eta: duration.subtract(st.target, stats.total))
 
   DayState(..st, stats: stats)
 }

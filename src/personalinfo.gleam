@@ -71,7 +71,7 @@ fn update(model: State, msg: Msg) {
       ef.just(Loaded(..st, current_state:, input_state:))
     }
     Loaded(current_state: cs, ..) as st, LunchChanged(new_lunch) -> {
-      let current_state = DayState(..cs, lunch: new_lunch)
+      let current_state = DayState(..cs, lunch: new_lunch) |> model.recalculate_statistics
       ef.just(Loaded(..st, current_state:))
     }
     Loaded(current_state: cs, input_state: is, ..) as st, SelectListItem(idx) -> {
