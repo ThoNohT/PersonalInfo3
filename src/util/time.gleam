@@ -22,6 +22,8 @@ pub type Time {
   Time(hours: Int, minutes: Int)
 }
 
+pub fn time_zero() { Time(0, 0) }
+
 /// Converts a Time to a string in the format hh:mm.
 pub fn time_to_time_string(time: Time) -> String {
   string.pad_start(int.to_string(time.hours), 2, "0") <>
@@ -41,6 +43,8 @@ pub fn compare_time(a: Time, b: Time) -> Order {
 pub type Duration {
   Duration(hours: Int, minutes: Int, parsed_from: Option(TimeFormat))
 }
+
+pub fn duration_zero() { Duration(0, 0, None) }
 
 /// Compares two Duration values.
 pub fn compare_duration(a: Duration, b: Duration) -> Order {
@@ -68,8 +72,12 @@ pub fn duration_to_unparsed_format_string(duration: Duration) -> String {
   case duration.parsed_from {
     Some(TimeFormat) -> duration_to_decimal_string(duration, 2)
     Some(DecimalFormat) -> duration_to_time_string(duration)
-    None -> duration_to_time_string(duration) <> " / " <> duration_to_decimal_string(duration, 2)
+    None -> duration_to_both_string(duration)
   }
+}
+
+pub fn duration_to_both_string(duration: Duration) -> String {
+  duration_to_time_string(duration) <> " / " <> duration_to_decimal_string(duration, 2)
 }
 
 /// Converts a Time to a Duration.

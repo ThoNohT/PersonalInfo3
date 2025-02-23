@@ -12,7 +12,7 @@ import util/time.{Time, Duration, DecimalFormat, TimeFormat}
 import model.{
   Gain, Use, Home, Office, In,
   ClockEvent, HolidayBooking,
-  type DayState, DayState,
+  type DayState, DayState, DayStatistics,
   type InputState, InputState,
   type State, Loading, Loaded,
   type Msg, LoadState, TimeInputChanged, HolidayInputChanged, TargetChanged, LunchChanged,
@@ -45,7 +45,8 @@ fn update(model: State, msg: Msg) {
         , HolidayBooking(1, Duration(12, 5, Some(DecimalFormat)), Gain)
         , HolidayBooking(2, Duration(1, 0, Some(TimeFormat)), Use)
         ] |> model.recalculate_events
-        let current_state = DayState(date: today, target: Duration(8, 0, Some(time.DecimalFormat)), lunch: True, events:)
+        let stats = DayStatistics(eta: time.duration_zero(), total: time.duration_zero(), total_office: time.duration_zero(), total_home: time.duration_zero(), remaining_holiday: time.duration_zero())
+        let current_state = DayState(date: today, target: Duration(8, 0, Some(time.DecimalFormat)), lunch: True, events:, stats:)
         let input_state = InputState(
           clock_input: unvalidated(),
           holiday_input: unvalidated(),

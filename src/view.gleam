@@ -10,7 +10,7 @@ import util/time
 import model.{
   In, Out, Home, Office,
   type DayEvent, ClockEvent, HolidayBooking,
-  type DayState, DayState,
+  type DayState, DayState, type DayStatistics,
   type InputState, InputState,
   type State, Loading, Loaded,
   Gain, Use,
@@ -58,7 +58,7 @@ fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int
     , eh.div([ a.class("row") ],
       [ text_input("target", "Target:", is.target_input, time.duration_to_unparsed_format_string(day_state.target), TargetChanged, time.duration_to_unparsed_format_string)
       , check_input("lunch", "Lunch", day_state.lunch, LunchChanged)
-      , eh.div([ a.class("col-3 p-2") ], [ eh.b([], [ e.text("ETA: ") ]), e.text("TODO") ])
+      , eh.div([ a.class("col-3 p-2") ], [ eh.b([], [ e.text("ETA: ") ]), e.text(time.duration_to_both_string(day_state.stats.eta)) ])
       ])
     , eh.div([], day_state.events |> list.map(day_item_card(selected_index, _)))
     ])
@@ -93,7 +93,7 @@ fn check_input(name, label, value, input_message) {
   ])
 }
 
-fn input_area(is: InputState) {
+fn input_area(is: InputState, ds: DayStatistics) {
   let btn = fn(msg, txt, enabled) {
     eh.button([ a.class("col-2 btn btn-sm btn-outline-primary m-1 mb-4"), ev.on_click(msg), a.disabled(!enabled) ], [ e.text(txt) ])
   }
@@ -113,14 +113,14 @@ fn input_area(is: InputState) {
     // Statistics
 
     , eh.hr([])
-    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total: ") ]), e.text("TODO") ])
-    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total (office): ") ]), e.text("TODO") ])
-    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total (home): ") ]), e.text("TODO") ])
+    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total: ") ]), e.text(time.duration_to_both_string(ds.total)) ])
+    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total (office): ") ]), e.text(time.duration_to_both_string(ds.total_office)) ])
+    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total (home): ") ]), e.text(time.duration_to_both_string(ds.total_home)) ])
     , eh.hr([])
     , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Week: ") ]), e.text("TODO") ])
     , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("ETA: ") ]), e.text("TODO") ])
     , eh.hr([])
-    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Holiday left: ") ]), e.text("TODO") ])
+    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Holiday left: ") ]), e.text(time.duration_to_both_string(ds.remaining_holiday)) ])
     ])
   ])
 }
@@ -132,7 +132,7 @@ pub fn view(model: State) {
       let selected_index = se |> option.map(fn(e: DayEvent) { e.index })
       eh.div([ a.class("container row mx-auto") ],
         [ day_item_list(st, is, selected_index)
-        , input_area(is)
+        , input_area(is, st.stats)
         ])
     }
   }
