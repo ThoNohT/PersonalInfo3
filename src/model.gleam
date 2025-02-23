@@ -37,9 +37,17 @@ pub type DayEvent {
   HolidayBooking(index: Int, amount: Duration, kind: HolidayBookingKind)
 }
 
-pub type DayState {
-  DayState(date: Day, target: Duration, lunch: Bool, events: List(DayEvent))
+pub type DayStatistics {
+  DayStatistics(
+    eta: Duration,
+    total: Duration, total_office: Duration, total_home: Duration,
+    remaining_holiday: Duration)
 }
+
+pub type DayState {
+  DayState(date: Day, target: Duration, lunch: Bool, events: List(DayEvent), stats: DayStatistics)
+}
+
 
 pub fn daystate_has_clock_event_at(ds: DayState, time: Time) {
   let is_ce_at = fn(ce: DayEvent) {
