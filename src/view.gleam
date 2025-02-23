@@ -55,7 +55,8 @@ fn day_item_card(selected_index: Option(Int), event: DayEvent) {
 
 fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int)) {
   eh.div([ a.class("col-6") ],
-    [ eh.h5([], [ e.text("Day") ] )
+    [ eh.h3([ a.class("text-center") ], [ e.text("Day") ] )
+    , eh.hr([])
     , eh.div([ a.class("row") ],
       [ text_input("target", "Target:", is.target_input, duration.to_unparsed_format_string(day_state.target), TargetChanged, duration.to_unparsed_format_string)
       , check_input("lunch", "Lunch", day_state.lunch, LunchChanged)
@@ -100,7 +101,8 @@ fn input_area(is: InputState, ds: DayStatistics) {
   }
   eh.div([ a.class("col-6") ],
   [ eh.div([ a.class("") ],
-    [ eh.h5([], [ e.text("Input") ] )
+    [ eh.h3([ a.class("text-center") ], [ e.text("Input") ] )
+    , eh.hr([])
     , eh.div([ a.class("row") ],
       [ text_input("clock", "Clock:", is.clock_input, "Invalid time.", TimeInputChanged, time.to_string)
       , btn(AddClockEvent, "Add", is_valid(is.clock_input))
@@ -112,8 +114,9 @@ fn input_area(is: InputState, ds: DayStatistics) {
       ])
 
     // Statistics
-
+    , eh.h3([ a.class("text-center") ], [ e.text("Statistics") ] )
     , eh.hr([])
+
     , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total: ") ]), e.text(duration.to_string(ds.total)) ])
     , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total (office): ") ]), e.text(duration.to_string(ds.total_office)) ])
     , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total (home): ") ]), e.text(duration.to_string(ds.total_home)) ])
