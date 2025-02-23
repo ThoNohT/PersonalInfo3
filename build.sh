@@ -11,6 +11,9 @@ elif [ $1 = "clean" ]; then
     rm -f ./dist/*.js
     rm -f ./dist/*.js.map
 
+elif [ $1 = "test" ]; then
+    gleam test
+
 else
     echo "Invalid command."
 

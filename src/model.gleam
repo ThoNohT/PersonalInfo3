@@ -3,7 +3,9 @@ import gleam/option.{type Option, Some, None}
 import gleam/order.{Gt, Lt}
 
 import birl.{type Day}
+
 import util/time.{type Time, Time}
+import util/numbers.{Pos}
 import util/duration.{type Duration, Duration}
 
 pub type Validated(a) {
@@ -177,7 +179,7 @@ pub fn recalculate_statistics(st: DayState) -> DayState {
   // TODO: "Total: -1:42 / -0.3" -> Here the -0.3 is correct. But something is going wrong with subtracting 0.5 hours from a time less than 0.5 hours.
   let stats = case st.lunch, daystate_has_clock_events(st) {
     True, True -> {
-      let half_hour = Duration(0, 30, None)
+      let half_hour = Duration(0, 30, Pos, None)
       case duration.compare(stats.total_office, stats.total_home) {
         Lt -> DayStatistics(..stats,
           total: duration.subtract(stats.total, half_hour),

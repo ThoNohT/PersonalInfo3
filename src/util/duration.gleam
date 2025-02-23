@@ -1,12 +1,11 @@
 import gleam/option.{type Option, Some, None}
 import gleam/string
 import gleam/int
-import gleam/result
 import gleam/float
 import gleam/order.{type Order, Eq}
 
 import util/prim
-import util/numbers as num
+import util/numbers.{type Sign, Pos, Neg} as num
 import util/time
 
 /// The different ways Duration can be formatted.
@@ -21,15 +20,23 @@ pub type DurationFormat {
 
 /// A duration in hours and minutes.
 pub type Duration {
-  Duration(hours: Int, minutes: Int, parsed_from: Option(DurationFormat))
+  Duration(hours: Int, minutes: Int, sign: Sign, parsed_from: Option(DurationFormat))
 }
 
 /// Converts a duration to minutes.
-fn to_minutes(d: Duration) -> Int { d.hours * 60 + d.minutes }
+pub fn to_minutes(d: Duration) -> Int {
+  d.hours * 60 + d.minutes * { case d.sign { Neg -> -1 Pos -> 1 } }
+}
 
 /// Converts a number of minutes to a duration.
-fn from_minutes(minutes: Int) -> Duration {
-  Duration( minutes / 60, int.modulo(minutes, 60) |> result.unwrap(0), None) 
+pub fn from_minutes(minutes: Int) -> Duration {
+  case minutes < 0 {
+    False -> Duration(minutes / 60, minutes % 60, Pos, None) 
+    True -> {
+      let minutes = int.absolute_value(minutes)
+      Duration(minutes / 60, minutes % 60, Neg, None)
+    }
+  }
 }
 
 /// Adds two durations, retains the format of the first, unless it is not specified, then that of the second.
@@ -47,7 +54,7 @@ pub fn later(time: time.Time, duration: Duration) -> Option(time.Time) {
   to_time(add(from_time(time), duration))
 }
 
-pub fn zero() { Duration(0, 0, None) }
+pub fn zero() { Duration(0, 0, Pos, None) }
 
 /// Compares two Duration values.
 pub fn compare(a: Duration, b: Duration) -> Order {
@@ -59,6 +66,7 @@ pub fn compare(a: Duration, b: Duration) -> Order {
 
 /// Converts a Duration to a string in the format h:mm.
 pub fn to_time_string(duration: Duration) -> String {
+  case duration.sign { Pos -> "" Neg -> "-" } <>
   int.to_string(duration.hours) <>
   ":" <>
   string.pad_start(int.to_string(duration.minutes), 2, "0")
@@ -66,7 +74,7 @@ pub fn to_time_string(duration: Duration) -> String {
 
 /// Converts a Duration to a string as a decimal.
 pub fn to_decimal_string(duration: Duration, decimals: Int) -> String {
-  let frac = int.to_float(duration.hours) +. { int.to_float(duration.minutes) /. 60.0 }
+  let frac = int.to_float(to_minutes(duration)) /. 60.0
   float.to_string(float.to_precision(frac, decimals))
 }
 
@@ -85,7 +93,7 @@ pub fn to_string(duration: Duration) -> String {
 }
 
 /// Converts a Time to a Duration.
-fn from_time(time: time.Time) { Duration(time.hours, time.minutes, Some(TimeFormat)) }
+fn from_time(time: time.Time) { Duration(time.hours, time.minutes, Pos, Some(TimeFormat)) }
 
 /// Converts a Duration to a Time, returns None if the duration is 24 hours or higher, or if it is negative.
 fn to_time(duration: Duration) -> Option(time.Time) {
@@ -127,9 +135,9 @@ pub fn parse(input: String) -> Option(Duration) {
       use iint <- option.then(num.parse_pos_int(int_))
       use idec <- option.then(num.parse_pos_int(dec))
 
-      Some(Duration(iint, float.round(60.0 *. num.decimalify(idec)), Some(DecimalFormat)))
+      Some(Duration(iint, float.round(60.0 *. num.decimalify(idec)), Pos, Some(DecimalFormat)))
     }
-    _, [ num ], [ num2 ] if num == num2 -> num.parse_pos_int(num) |> option.map(Duration(_, 0, Some(DecimalFormat)))
+    _, [ num ], [ num2 ] if num == num2 -> num.parse_pos_int(num) |> option.map(Duration(_, 0, Pos, Some(DecimalFormat)))
     _, _, _ -> None
   }
 }
