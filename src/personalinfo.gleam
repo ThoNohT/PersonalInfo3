@@ -7,6 +7,7 @@ import lustre/effect
 
 import util/effect as ef
 import util/time
+import util/numbers.{Pos}
 import util/duration.{Duration, DecimalFormat}
 import model.{
   Office, In,
@@ -41,13 +42,13 @@ fn update(model: State, msg: Msg) {
     Loading, LoadState -> {
         let events = []
         let stats = DayStatistics(eta: duration.zero(), total: duration.zero(), total_office: duration.zero(), total_home: duration.zero(), remaining_holiday: duration.zero())
-        let current_state = DayState(date: today, target: Duration(8, 0, Some(DecimalFormat)), lunch: True, events:, stats:) |> model.recalculate_statistics
+        let current_state = DayState(date: today, target: Duration(8, 0, Pos, Some(DecimalFormat)), lunch: True, events:, stats:) |> model.recalculate_statistics
         let input_state = InputState(
           clock_input: unvalidated(),
           holiday_input: unvalidated(),
           target_input: validate(duration.to_decimal_string(current_state.target, 2), duration.parse)
         )
-        #(Loaded(today:, current_state:, selected_event: None, week_target: Duration(40, 0, Some(DecimalFormat)), input_state:)
+        #(Loaded(today:, current_state:, selected_event: None, week_target: Duration(40, 0, Pos, Some(DecimalFormat)), input_state:)
         , ef.dispatch(SelectListItem(0)))
     }
     Loaded(input_state: is, ..) as st, TimeInputChanged(new_time) -> {
