@@ -24,25 +24,21 @@ pub type Duration {
   Duration(hours: Int, minutes: Int, parsed_from: Option(DurationFormat))
 }
 
-/// Adds two durations, retains the format of the first, unless it is not specified, then that of the second.
-pub fn add(a: Duration, b: Duration) {
-  let new_hrs = a.hours + b.hours
-  let new_mins = a.minutes + b.minutes
+/// Converts a duration to minutes.
+fn to_minutes(d: Duration) -> Int { d.hours * 60 + d.minutes }
 
-  let hrs_overflow = case new_mins > 59 { False -> 0 True -> 1 }
-
-  let parsed_from = option.or(a.parsed_from, b.parsed_from)
-  Duration(new_hrs + hrs_overflow, new_mins % 60, parsed_from)
+/// Converts a number of minutes to a duration.
+fn from_minutes(minutes: Int) -> Duration {
+  Duration( minutes / 60, int.modulo(minutes, 60) |> result.unwrap(0), None) 
 }
+
+/// Adds two durations, retains the format of the first, unless it is not specified, then that of the second.
+pub fn add(a: Duration, b: Duration) { from_minutes(to_minutes(a) + to_minutes(b)) }
 
 /// Subtracts two durations, retains the format of the first, unless it is not specified, then that of the second.
 pub fn subtract(a: Duration, b: Duration) {
-  let new_hrs = a.hours - b.hours
-  let new_mins = a.minutes - b.minutes
-
-  let hrs_overflow = case new_mins < 0 { False -> 0 True -> 1 }
   let parsed_from = option.or(a.parsed_from, b.parsed_from)
-  Duration(new_hrs - hrs_overflow, int.modulo(new_mins, 60) |> result.unwrap(0), parsed_from)
+  Duration(..from_minutes(to_minutes(a) - to_minutes(b)), parsed_from:)
 }
 
 /// Adds the specified duration to the specified time to provide a later moment.
