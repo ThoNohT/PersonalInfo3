@@ -49,18 +49,23 @@ fn day_item_card(selected_index: Option(Int), event: DayEvent) {
     ],
     [ eh.div([ a.class("d-flex flex-row flex-grow-1"), ev.on_click(SelectListItem(event.index)) ], body)
     , home_toggle
-    , eh.button([ a.class("btn btn-outline-danger btn-sm"), ev.on_click(DeleteListItem(event.index)) ], [ e.text("X") ])
+    , eh.button([ a.class("btn btn-outline-secondary btn-sm"), ev.on_click(DeleteListItem(event.index)) ], [ e.text("X") ])
     ])
 }
 
 fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int)) {
+  let eta_text = case duration.is_positive(day_state.stats.eta) {
+    True -> duration.to_string(day_state.stats.eta)
+    False -> "Complete"
+  }
+
   eh.div([ a.class("col-6") ],
     [ eh.h3([ a.class("text-center") ], [ e.text("Day") ] )
     , eh.hr([])
     , eh.div([ a.class("row") ],
       [ text_input("target", "Target:", is.target_input, duration.to_unparsed_format_string(day_state.target), TargetChanged, duration.to_unparsed_format_string)
       , check_input("lunch", "Lunch", day_state.lunch, LunchChanged)
-      , eh.div([ a.class("col-3 p-2") ], [ eh.b([], [ e.text("ETA: ") ]), e.text(duration.to_string(day_state.stats.eta)) ])
+      , eh.div([ a.class("col-3 p-2") ], [ eh.b([], [ e.text("ETA: ") ]), e.text(eta_text) ])
       ])
     , eh.div([], day_state.events |> list.map(day_item_card(selected_index, _)))
     ])
