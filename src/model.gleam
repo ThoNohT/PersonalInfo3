@@ -38,7 +38,7 @@ pub type DayEvent {
 }
 
 pub type DayState {
-  DayState(date: Day, target: Duration, events: List(DayEvent))
+  DayState(date: Day, target: Duration, lunch: Bool, events: List(DayEvent))
 }
 
 pub fn daystate_has_clock_event_at(ds: DayState, time: Time) {
@@ -73,6 +73,7 @@ pub type Msg {
   TimeInputChanged(new_time: String)
   HolidayInputChanged(new_duration: String)
   TargetChanged(new_target: String)
+  LunchChanged(new_lunch: Bool)
   SelectListItem(index: Int)
   DeleteListItem(index: Int)
   ToggleHome(index: Int)

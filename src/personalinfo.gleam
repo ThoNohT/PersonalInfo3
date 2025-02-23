@@ -15,7 +15,7 @@ import model.{
   type DayState, DayState,
   type InputState, InputState,
   type State, Loading, Loaded,
-  type Msg, LoadState, TimeInputChanged, HolidayInputChanged, TargetChanged,
+  type Msg, LoadState, TimeInputChanged, HolidayInputChanged, TargetChanged, LunchChanged,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
   validate, unvalidated}
 import view.{view}
@@ -45,7 +45,7 @@ fn update(model: State, msg: Msg) {
         , HolidayBooking(1, Duration(12, 5, Some(DecimalFormat)), Gain)
         , HolidayBooking(2, Duration(1, 0, Some(TimeFormat)), Use)
         ] |> model.recalculate_events
-        let current_state = DayState(date: today, target: Duration(8, 0, Some(time.DecimalFormat)), events:)
+        let current_state = DayState(date: today, target: Duration(8, 0, Some(time.DecimalFormat)), lunch: True, events:)
         let input_state = InputState(
           clock_input: unvalidated(),
           holiday_input: unvalidated(),
@@ -69,6 +69,10 @@ fn update(model: State, msg: Msg) {
       let input_state = InputState(..is, target_input:)
       let current_state = case target_input.parsed { None -> cs Some(target) -> DayState(..cs, target:) }
       ef.just(Loaded(..st, current_state:, input_state:))
+    }
+    Loaded(current_state: cs, ..) as st, LunchChanged(new_lunch) -> {
+      let current_state = DayState(..cs, lunch: new_lunch)
+      ef.just(Loaded(..st, current_state:))
     }
     Loaded(current_state: cs, input_state: is, ..) as st, SelectListItem(idx) -> {
       let selected_event = cs.events |> list.drop(idx) |> list.first |> option.from_result
