@@ -3,7 +3,8 @@ import gleam/option.{type Option, None}
 import gleam/order.{Gt, Lt}
 
 import birl.{type Day}
-import util/time.{type Time, Time, type Duration, Duration}
+import util/time.{type Time, Time}
+import util/duration.{type Duration, Duration}
 
 pub type Validated(a) {
   Validated(input: String, parsed: Option(a))
@@ -97,10 +98,10 @@ pub fn recalculate_events(events: List(DayEvent)) -> List(DayEvent) {
     case a, b {
       ClockEvent(..), HolidayBooking(..) -> Lt
       HolidayBooking(..), ClockEvent(..) -> Gt
-      ClockEvent(time: t1, ..), ClockEvent(time: t2, ..) -> time.compare_time(t1, t2)
+      ClockEvent(time: t1, ..), ClockEvent(time: t2, ..) -> time.compare(t1, t2)
       HolidayBooking(kind: Gain, ..), HolidayBooking(kind: Use, ..) -> Lt
       HolidayBooking(kind: Use, ..), HolidayBooking(kind: Gain, ..) -> Gt
-      HolidayBooking(amount: a1, ..), HolidayBooking(amount: a2, ..) -> time.compare_duration(a1, a2)
+      HolidayBooking(amount: a1, ..), HolidayBooking(amount: a2, ..) -> duration.compare(a1, a2)
     }
   }
 

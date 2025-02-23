@@ -7,6 +7,7 @@ import lustre/event as ev
 import lustre/attribute as a
 
 import util/time
+import util/duration
 import model.{
   In, Out, Home, Office,
   type DayEvent, ClockEvent, HolidayBooking,
@@ -23,13 +24,13 @@ fn day_item_card(selected_index: Option(Int), event: DayEvent) {
     ClockEvent(_, time, _, kind) -> {
       let prefix = case kind { In -> "In:" Out -> "Out:" }
       [ eh.b([ a.class("px-1") ], [ e.text(prefix) ])
-      , eh.span([ a.class("px-1") ], [ e.text(time.time_to_time_string(time)) ])
+      , eh.span([ a.class("px-1") ], [ e.text(time.to_string(time)) ])
       ]
     }
     HolidayBooking(_, amount, kind) -> {
       let suffix = case kind { Gain -> " gained" Use -> " used" }
       [ eh.b([ a.class("px-1") ], [ e.text("Holiday: ") ])
-      , eh.span([ a.class("px-1") ], [ e.text(time.duration_to_time_string(amount) <> suffix) ])
+      , eh.span([ a.class("px-1") ], [ e.text(duration.to_time_string(amount) <> suffix) ])
       ]
     }
   }
@@ -56,9 +57,9 @@ fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int
   eh.div([ a.class("col-6") ],
     [ eh.h5([], [ e.text("Day") ] )
     , eh.div([ a.class("row") ],
-      [ text_input("target", "Target:", is.target_input, time.duration_to_unparsed_format_string(day_state.target), TargetChanged, time.duration_to_unparsed_format_string)
+      [ text_input("target", "Target:", is.target_input, duration.to_unparsed_format_string(day_state.target), TargetChanged, duration.to_unparsed_format_string)
       , check_input("lunch", "Lunch", day_state.lunch, LunchChanged)
-      , eh.div([ a.class("col-3 p-2") ], [ eh.b([], [ e.text("ETA: ") ]), e.text(time.duration_to_both_string(day_state.stats.eta)) ])
+      , eh.div([ a.class("col-3 p-2") ], [ eh.b([], [ e.text("ETA: ") ]), e.text(duration.to_string(day_state.stats.eta)) ])
       ])
     , eh.div([], day_state.events |> list.map(day_item_card(selected_index, _)))
     ])
@@ -101,11 +102,11 @@ fn input_area(is: InputState, ds: DayStatistics) {
   [ eh.div([ a.class("") ],
     [ eh.h5([], [ e.text("Input") ] )
     , eh.div([ a.class("row") ],
-      [ text_input("clock", "Clock:", is.clock_input, "Invalid time.", TimeInputChanged,  time.time_to_time_string)
+      [ text_input("clock", "Clock:", is.clock_input, "Invalid time.", TimeInputChanged, time.to_string)
       , btn(AddClockEvent, "Add", is_valid(is.clock_input))
       ])
     , eh.div([ a.class("row") ],
-      [ text_input("holiday", "Holiday:", is.holiday_input, "Invalid duration.", HolidayInputChanged, time.duration_to_unparsed_format_string)
+      [ text_input("holiday", "Holiday:", is.holiday_input, "Invalid duration.", HolidayInputChanged, duration.to_unparsed_format_string)
       , btn(AddHolidayBooking(Gain), "Gain", is_valid(is.holiday_input))
       , btn(AddHolidayBooking(Use), "Use", is_valid(is.holiday_input))
       ])
@@ -113,14 +114,14 @@ fn input_area(is: InputState, ds: DayStatistics) {
     // Statistics
 
     , eh.hr([])
-    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total: ") ]), e.text(time.duration_to_both_string(ds.total)) ])
-    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total (office): ") ]), e.text(time.duration_to_both_string(ds.total_office)) ])
-    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total (home): ") ]), e.text(time.duration_to_both_string(ds.total_home)) ])
+    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total: ") ]), e.text(duration.to_string(ds.total)) ])
+    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total (office): ") ]), e.text(duration.to_string(ds.total_office)) ])
+    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total (home): ") ]), e.text(duration.to_string(ds.total_home)) ])
     , eh.hr([])
     , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Week: ") ]), e.text("TODO") ])
     , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("ETA: ") ]), e.text("TODO") ])
     , eh.hr([])
-    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Holiday left: ") ]), e.text(time.duration_to_both_string(ds.remaining_holiday)) ])
+    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Holiday left: ") ]), e.text(duration.to_string(ds.remaining_holiday)) ])
     ])
   ])
 }
