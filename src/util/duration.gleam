@@ -1,6 +1,7 @@
 import gleam/option.{type Option, Some, None}
 import gleam/string
 import gleam/int
+import gleam/result
 import gleam/float
 import gleam/order.{type Order, Eq}
 
@@ -20,6 +21,27 @@ pub type DurationFormat {
 /// A duration in hours and minutes.
 pub type Duration {
   Duration(hours: Int, minutes: Int, parsed_from: Option(DurationFormat))
+}
+
+/// Adds two durations, retains the format of the first, unless it is not specified, then that of the second.
+pub fn add(a: Duration, b: Duration) {
+  let new_hrs = a.hours + b.hours
+  let new_mins = a.minutes + b.minutes
+
+  let hrs_overflow = case new_mins > 59 { False -> 0 True -> 1 }
+
+  let parsed_from = option.or(a.parsed_from, b.parsed_from)
+  Duration(new_hrs + hrs_overflow, new_mins % 60, parsed_from)
+}
+
+/// Subtracts two durations, retains the format of the first, unless it is not specified, then that of the second.
+pub fn subtract(a: Duration, b: Duration) {
+  let new_hrs = a.hours - b.hours
+  let new_mins = a.minutes - b.minutes
+
+  let hrs_overflow = case new_mins < 0 { False -> 0 True -> 1 }
+  let parsed_from = option.or(a.parsed_from, b.parsed_from)
+  Duration(new_hrs - hrs_overflow, int.modulo(new_mins, 60) |> result.unwrap(0), parsed_from)
 }
 
 pub fn zero() { Duration(0, 0, None) }
@@ -54,12 +76,25 @@ pub fn to_unparsed_format_string(duration: Duration) -> String {
   }
 }
 
+/// Converts a duration to a string containing both the time and decimal format.
 pub fn to_string(duration: Duration) -> String {
   to_time_string(duration) <> " / " <> to_decimal_string(duration, 2)
 }
 
 /// Converts a Time to a Duration.
 fn from_time(time: time.Time) { Duration(time.hours, time.minutes, Some(TimeFormat)) }
+
+/// Retuns the duration between the from and to times.
+/// Fails if the from time is after the to time.
+pub fn between(from from: time.Time, to to: time.Time) -> Duration {
+  case time.compare(to, from) {
+    Eq -> zero()
+    _ -> {
+      let assert order.Gt = time.compare(to, from)
+      subtract(from_time(to), from_time(from))
+    }
+  }
+}
 
 /// Parses a duration from a string.
 ///
