@@ -8,10 +8,10 @@ pub fn then(default: b, option: Option(a), apply fun: fn(a) -> b) -> b {
     }
 }
 
-/// Like then, but checks a boolean. The resulting value is also a boolean, but this can be ignored since it will always be true when passed.
-pub fn check(default: a, value: Bool, apply fun: fn(Bool) -> a) -> a {
+/// Like then, but checks a boolean. The resulting value is Nil.
+pub fn check(default: a, value: Bool, apply fun: fn(Nil) -> a) -> a {
     case value {
         False -> default
-        True -> fun(True)
+        True -> fun(Nil)
     }
 }

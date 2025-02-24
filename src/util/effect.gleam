@@ -16,7 +16,7 @@ pub fn then(default: b, option: Option(a), apply fun: fn(a) -> #(b, Effect(c))) 
 }
 
 /// Then, but it checks a boolean value rather than an option.
-pub fn check(default: a, value: Bool, apply fun: fn(Bool) -> #(a, Effect(b))) -> #(a, Effect(b)) {
+pub fn check(default: a, value: Bool, apply fun: fn(Nil) -> #(a, Effect(b))) -> #(a, Effect(b)) {
   prim.check(just(default), value, fun)
 }
 
