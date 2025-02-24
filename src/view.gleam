@@ -145,7 +145,7 @@ fn input_area(is: InputState, ds: DayStatistics) {
 pub fn view(model: State) {
   case model {
     Loading -> eh.div([], [ e.text("Loading...") ])
-    Loaded(_, st, se, _, is) -> {
+    Loaded(_, _, st, se, _, is) -> {
       let selected_index = se |> option.map(fn(e: DayEvent) { e.index })
       eh.div([ a.class("container row mx-auto") ],
         [ day_item_list(st, is, selected_index)
