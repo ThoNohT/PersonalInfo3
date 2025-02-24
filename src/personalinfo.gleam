@@ -43,7 +43,7 @@ fn update(model: State, msg: Msg) {
 
         let events = []
         let stats = DayStatistics(eta: duration.zero(), total: duration.zero(), total_office: duration.zero(), total_home: duration.zero(), remaining_holiday: duration.zero())
-        let current_state = DayState(date: time.today(), target: Duration(8, 0, Pos, Some(DecimalFormat)), lunch: True, events:, stats:) |> model.recalculate_statistics
+        let current_state = DayState(date: today, target: Duration(8, 0, Pos, Some(DecimalFormat)), lunch: True, events:, stats:) |> model.recalculate_statistics(now, today)
         let input_state = InputState(
           clock_input: unvalidated(),
           holiday_input: unvalidated(),
@@ -58,7 +58,7 @@ fn update(model: State, msg: Msg) {
 
       // Only update if the time changed to the precision we observe it (minutes).
       use _ <- ef.check(st, now != st.now)
-      ef.just(Loaded(..st, today:, now:, current_state: st.current_state |> model.recalculate_statistics))
+      ef.just(Loaded(..st, today:, now:, current_state: st.current_state |> model.recalculate_statistics(now, today)))
     }
     Loaded(input_state: is, ..) as st, TimeInputChanged(new_time) -> {
       let input_state = InputState(..is,
@@ -70,14 +70,14 @@ fn update(model: State, msg: Msg) {
         holiday_input: validate(string.slice(new_duration, 0, 6), duration.parse))
       ef.just(Loaded(..st, input_state:))
     }
-    Loaded(current_state: cs, input_state: is, ..) as st, TargetChanged(new_target) -> {
+    Loaded(current_state: cs, input_state: is, now:, today:, ..) as st, TargetChanged(new_target) -> {
       let target_input = validate(string.slice(new_target, 0, 6), duration.parse)
       let input_state = InputState(..is, target_input:)
-      let current_state = case target_input.parsed { None -> cs Some(target) -> DayState(..cs, target:) } |> model.recalculate_statistics
+      let current_state = case target_input.parsed { None -> cs Some(target) -> DayState(..cs, target:) } |> model.recalculate_statistics(now, today)
       ef.just(Loaded(..st, current_state:, input_state:))
     }
-    Loaded(current_state: cs, ..) as st, LunchChanged(new_lunch) -> {
-      let current_state = DayState(..cs, lunch: new_lunch) |> model.recalculate_statistics
+    Loaded(current_state: cs, now:, today:, ..) as st, LunchChanged(new_lunch) -> {
+      let current_state = DayState(..cs, lunch: new_lunch) |> model.recalculate_statistics(now, today)
       ef.just(Loaded(..st, current_state:))
     }
     Loaded(current_state: cs, input_state: is, ..) as st, SelectListItem(idx) -> {
@@ -89,18 +89,18 @@ fn update(model: State, msg: Msg) {
       }
       ef.just(Loaded(..st, selected_event:, input_state:))
     }
-    Loaded(current_state: cs, ..) as st, DeleteListItem(idx) -> {
+    Loaded(current_state: cs, now:, today:, ..) as st, DeleteListItem(idx) -> {
       let #(before, after) = cs.events |> list.split(idx)
       case after {
         [ _, ..af ] -> {
           // Takes out the element at idx.
-          let current_state = DayState(..cs, events: list.append(before, af) |> model.recalculate_events) |> model.recalculate_statistics
+          let current_state = DayState(..cs, events: list.append(before, af) |> model.recalculate_events) |> model.recalculate_statistics(now, today)
           ef.just(Loaded(..st, current_state:))
         }
         _ -> ef.just(st)
       }
     }
-    Loaded(current_state: cs, ..) as st, ToggleHome(idx) -> {
+    Loaded(current_state: cs, now:, today:, ..) as st, ToggleHome(idx) -> {
       let toggle_home = fn(e) {
         case e {
           ClockEvent(index: index, location:loc, ..) as ce if idx == index ->
@@ -110,24 +110,24 @@ fn update(model: State, msg: Msg) {
       }
 
       let new_events = cs.events |> list.map(toggle_home)
-      let current_state = DayState(..cs, events: new_events |> model.recalculate_events) |> model.recalculate_statistics
+      let current_state = DayState(..cs, events: new_events |> model.recalculate_events) |> model.recalculate_statistics(now, today)
       ef.just(Loaded(..st, current_state:))
     }
-    Loaded(current_state: cs, input_state: is, ..) as st, AddClockEvent -> {
+    Loaded(current_state: cs, input_state: is, now:, today:, ..) as st, AddClockEvent -> {
       use time <- ef.then(st, is.clock_input.parsed)
       use _ <- ef.check(st, !model.daystate_has_clock_event_at(cs, time))
 
       let new_event = ClockEvent(list.length(cs.events), time, Office, In)
       let events = [ new_event, ..cs.events ] |> model.recalculate_events
-      let current_state = DayState(..cs, events:) |> model.recalculate_statistics
+      let current_state = DayState(..cs, events:) |> model.recalculate_statistics(now, today)
       ef.just(Loaded(..st, current_state:))
     }
-    Loaded(current_state: cs, input_state: is, ..) as st, AddHolidayBooking(kind) -> {
+    Loaded(current_state: cs, input_state: is, now:, today:, ..) as st, AddHolidayBooking(kind) -> {
       use duration <- ef.then(st, is.holiday_input.parsed)
 
       let new_event = HolidayBooking(list.length(cs.events), duration, kind)
       let events = [ new_event, ..cs.events ] |> model.recalculate_events
-      let current_state = DayState(..cs, events:) |> model.recalculate_statistics
+      let current_state = DayState(..cs, events:) |> model.recalculate_statistics(now, today)
       ef.just(Loaded(..st, current_state:))
     }
     _, _ -> ef.just(model)
