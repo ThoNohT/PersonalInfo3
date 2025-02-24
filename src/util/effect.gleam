@@ -8,7 +8,7 @@ import util/prim
 pub fn just(val) { #(val, effect.none()) }
 
 /// Simply dispatches an event to be processed next.
-pub fn dispatch(val) { effect.from(fn(dispatch) { dispatch(val) }) }
+pub fn dispatch(val: msg) -> Effect(msg) { effect.from(fn(dispatch) { dispatch(val) }) }
 
 /// Option.then, that can be used for short-circuiting message and effect loops.
 pub fn then(default: b, option: Option(a), apply fun: fn(a) -> #(b, Effect(c))) -> #(b, Effect(c)) {
@@ -19,3 +19,15 @@ pub fn then(default: b, option: Option(a), apply fun: fn(a) -> #(b, Effect(c))) 
 pub fn check(default: a, value: Bool, apply fun: fn(Bool) -> #(a, Effect(b))) -> #(a, Effect(b)) {
   prim.check(just(default), value, fun)
 }
+
+/// Dispatches the specified message every specified interval in milliseconds.
+pub fn every(interval: Int, tick: msg) -> Effect(msg) {
+  effect.from(fn(dispatch) {
+    do_every(interval, fn() {
+      dispatch(tick)
+    })
+  })
+}
+
+@external(javascript, "./ffi.mjs", "every")
+fn do_every(_interval: Int, _cb: fn() -> Nil) -> Nil

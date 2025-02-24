@@ -62,7 +62,6 @@ pub type DayState {
   DayState(date: Day, target: Duration, lunch: Bool, events: List(DayEvent), stats: DayStatistics)
 }
 
-
 pub fn daystate_has_clock_event_at(ds: DayState, time: Time) {
   let is_ce_at = fn(ce: DayEvent) { case ce { ClockEvent(time: cet, ..) -> cet == time _ -> False } }
   ds.events |> list.any(is_ce_at)
@@ -85,6 +84,7 @@ pub type State {
   Loading
   Loaded(
     today: Day,
+    now: Time,
     current_state: DayState,
     selected_event: Option(DayEvent),
     week_target: Duration,
@@ -94,6 +94,7 @@ pub type State {
 
 pub type Msg {
   LoadState
+  Tick
   TimeInputChanged(new_time: String)
   HolidayInputChanged(new_duration: String)
   TargetChanged(new_target: String)

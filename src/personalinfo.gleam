@@ -15,7 +15,7 @@ import model.{
   type DayState, DayState, DayStatistics,
   type InputState, InputState,
   type State, Loading, Loaded,
-  type Msg, LoadState, TimeInputChanged, HolidayInputChanged, TargetChanged, LunchChanged,
+  type Msg, LoadState, Tick, TimeInputChanged, HolidayInputChanged, TargetChanged, LunchChanged,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
   validate, unvalidated}
 import view.{view}
@@ -36,20 +36,29 @@ fn init(_) {
 }
 
 fn update(model: State, msg: Msg) {
-  let today = time.today()
-
   case model, msg {
     Loading, LoadState -> {
+        let today = time.today()
+        let now = time.now()
+
         let events = []
         let stats = DayStatistics(eta: duration.zero(), total: duration.zero(), total_office: duration.zero(), total_home: duration.zero(), remaining_holiday: duration.zero())
-        let current_state = DayState(date: today, target: Duration(8, 0, Pos, Some(DecimalFormat)), lunch: True, events:, stats:) |> model.recalculate_statistics
+        let current_state = DayState(date: time.today(), target: Duration(8, 0, Pos, Some(DecimalFormat)), lunch: True, events:, stats:) |> model.recalculate_statistics
         let input_state = InputState(
           clock_input: unvalidated(),
           holiday_input: unvalidated(),
           target_input: validate(duration.to_decimal_string(current_state.target, 2), duration.parse)
         )
-        #(Loaded(today:, current_state:, selected_event: None, week_target: Duration(40, 0, Pos, Some(DecimalFormat)), input_state:)
-        , ef.dispatch(SelectListItem(0)))
+        #(Loaded(today:, now:, current_state:, selected_event: None, week_target: Duration(40, 0, Pos, Some(DecimalFormat)), input_state:)
+        , effect.batch([ ef.dispatch(SelectListItem(0)), ef.every(1000, Tick) ]))
+    }
+    Loaded(..) as st, Tick -> {
+      let today = time.today()
+      let now = time.now()
+
+      // Only update if the time changed to the precision we observe it (minutes).
+      use _ <- ef.check(st, now != st.now)
+      ef.just(Loaded(..st, today:, now:, current_state: st.current_state |> model.recalculate_statistics))
     }
     Loaded(input_state: is, ..) as st, TimeInputChanged(new_time) -> {
       let input_state = InputState(..is,
@@ -124,10 +133,3 @@ fn update(model: State, msg: Msg) {
     _, _ -> ef.just(model)
   }
 }
-
-// fn checkbox_input(name) -> e.Element(a) {
-//   eh.div([],
-//     [ eh.div([], [ eh.input([ a.type_("checkbox") ]) ])
-//     , eh.div([], [ e.text(name) ])
-//     ])
-// }
