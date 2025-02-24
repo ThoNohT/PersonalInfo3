@@ -128,7 +128,7 @@ pub fn recalculate_events(events: List(DayEvent)) -> List(DayEvent) {
   |> list.reverse
 }
 
-pub fn recalculate_statistics(st: DayState) -> DayState {
+pub fn recalculate_statistics(st: DayState, now: Time, today: Day) -> DayState {
   let add_hours = fn(stats: DayStatistics, location: ClockLocation, amount: Duration) {
     case location {
         Office -> DayStatistics(..stats,
@@ -168,9 +168,9 @@ pub fn recalculate_statistics(st: DayState) -> DayState {
   let stats = st.events |> list.fold(#(stats, None), folder)
 
   // Add the time between the last event and now, if the last event was an in-event.
-  let stats = case stats.1, time.today() == st.date {
+  let stats = case stats.1, today == st.date {
     Some(state), True ->
-      add_hours(stats.0, state.0, duration.between(from: state.1, to: time.now()))
+      add_hours(stats.0, state.0, duration.between(from: state.1, to: now))
     _, _ -> stats.0
   }
 

@@ -53,7 +53,7 @@ fn day_item_card(selected_index: Option(Int), event: DayEvent) {
     ])
 }
 
-fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int)) {
+fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int), now: time.Time) {
   let eta_text = case duration.is_positive(day_state.stats.eta) {
     True -> duration.to_string(day_state.stats.eta)
     False -> "Complete"
@@ -61,7 +61,7 @@ fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int
 
   let end_text =
     case duration.is_positive(day_state.stats.eta),
-         duration.later(time.now(), day_state.stats.eta) {
+         duration.later(now, day_state.stats.eta) {
     True, Some(done_at) -> [ eh.br([]) , e.text(time.to_string(done_at)) ]
     _, _ -> []
 
@@ -145,10 +145,10 @@ fn input_area(is: InputState, ds: DayStatistics) {
 pub fn view(model: State) {
   case model {
     Loading -> eh.div([], [ e.text("Loading...") ])
-    Loaded(_, _, st, se, _, is) -> {
+    Loaded(_, now, st, se, _, is) -> {
       let selected_index = se |> option.map(fn(e: DayEvent) { e.index })
       eh.div([ a.class("container row mx-auto") ],
-        [ day_item_list(st, is, selected_index)
+        [ day_item_list(st, is, selected_index, now)
         , input_area(is, st.stats)
         ])
     }
