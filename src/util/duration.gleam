@@ -31,7 +31,7 @@ pub fn to_minutes(d: Duration) -> Int {
 /// Converts a number of minutes to a duration.
 pub fn from_minutes(minutes: Int) -> Duration {
   case minutes < 0 {
-    False -> Duration(minutes / 60, minutes % 60, Pos, None) 
+    False -> Duration(minutes / 60, minutes % 60, Pos, None)
     True -> {
       let minutes = int.absolute_value(minutes)
       Duration(minutes / 60, minutes % 60, Neg, None)
