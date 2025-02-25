@@ -7,6 +7,7 @@ import lustre/event as ev
 import lustre/attribute as a
 import birl
 
+import util/event as uev
 import util/time
 import util/day
 import util/duration
@@ -19,6 +20,7 @@ import model.{
   Gain, Use,
   TimeInputChanged, HolidayInputChanged, TargetChanged, LunchChanged,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
+  PrevDay, NextDay,
   type Validated, is_valid}
 
 fn day_item_card(selected_index: Option(Int), event: DayEvent) {
@@ -66,14 +68,27 @@ fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int
          duration.later(now, day_state.stats.eta) {
     True, Some(done_at) -> [ eh.br([]) , e.text(time.to_string(done_at)) ]
     _, _ -> []
-
   }
 
+  let header =
+    eh.div([ a.class("row") ],
+    [ eh.button(
+      [ a.class("col-1 btn btn-primary"), uev.on_click_mod(PrevDay) ],
+      [ e.text("<<") ])
+    , eh.h3([ a.class("col-10 text-center") ],
+      [ e.text(day.to_string(day_state.date))
+      , case day.to_relative_string(day_state.date, today) {
+          Some(str) -> e.text(" (" <> str <> ")")
+          None -> e.none()
+        }
+      ])
+    , eh.button(
+      [ a.class("col-1 btn btn-primary"), uev.on_click_mod(NextDay), a.disabled(today == day_state.date) ],
+      [ e.text(">>") ])
+    ])
+
   eh.div([ a.class("col-6") ],
-    [ eh.h3([ a.class("text-center") ],
-      [ e.text(day.to_string(day_state.date)) 
-      , case day.to_relative_string(day_state.date, today) { Some(str) -> e.text(" (" <> str <> ")") None -> e.none() }
-      ] )
+    [ header
     , eh.hr([])
     , eh.div([ a.class("row") ],
       [ text_input("target", "Target:", is.target_input, duration.to_unparsed_format_string(day_state.target), TargetChanged, duration.to_unparsed_format_string)
@@ -150,7 +165,7 @@ fn input_area(is: InputState, ds: DayStatistics) {
 pub fn view(model: State) {
   case model {
     Loading -> eh.div([], [ e.text("Loading...") ])
-    Loaded(today, now, st, se, _, is) -> {
+    Loaded(today, now, _, st, se, _, is) -> {
       let selected_index = se |> option.map(fn(e: DayEvent) { e.index })
       eh.div([ a.class("container row mx-auto") ],
         [ day_item_list(st, is, selected_index, now, today)

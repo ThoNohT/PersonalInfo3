@@ -17,6 +17,7 @@ import model.{
   type State, Loading, Loaded,
   type Msg, LoadState, Tick, TimeInputChanged, HolidayInputChanged, TargetChanged, LunchChanged,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
+  PrevDay, NextDay,
   validate, unvalidated}
 import view.{view}
 
@@ -43,7 +44,7 @@ fn update(model: State, msg: Msg) {
         LoadState -> {
           let today = time.today()
           let now = time.now()
-  
+
           let events = []
           let stats = DayStatistics(eta: duration.zero(), total: duration.zero(), total_office: duration.zero(), total_home: duration.zero(), remaining_holiday: duration.zero())
           let current_state = DayState(date: today, target: Duration(8, 0, Pos, Some(DecimalFormat)), lunch: True, events:, stats:) |> model.recalculate_statistics(now, today)
@@ -52,7 +53,7 @@ fn update(model: State, msg: Msg) {
             holiday_input: unvalidated(),
             target_input: validate(duration.to_decimal_string(current_state.target, 2), duration.parse)
           )
-          #(Loaded(today:, now:, current_state:, selected_event: None, week_target: Duration(40, 0, Pos, Some(DecimalFormat)), input_state:)
+          #(Loaded(today:, now:, history: [], current_state:, selected_event: None, week_target: Duration(40, 0, Pos, Some(DecimalFormat)), input_state:)
           , effect.batch([ ef.dispatch(SelectListItem(0)), ef.every(1000, Tick) ]))
         }
         _ -> ef.just(model)
@@ -62,7 +63,7 @@ fn update(model: State, msg: Msg) {
     // Loaded.
     Loaded(now:, today:, ..) as st -> {
       let recalc_stats = fn(stats) { model.recalculate_statistics(stats, now, today) }
-      
+
       case msg {
         Tick -> {
           let today = time.today()
@@ -144,6 +145,14 @@ fn update(model: State, msg: Msg) {
           let events = [ new_event, ..st.current_state.events ] |> model.recalculate_events
           let current_state = DayState(..st.current_state, events:) |> recalc_stats
           ef.just(Loaded(..st, current_state:))
+        }
+        PrevDay(_modifiers) -> {
+          // TODO: Implement
+          ef.just(model)
+        }
+        NextDay(_modifiers) -> {
+          // TODO: Implement
+          ef.just(model)
         }
         _ -> ef.just(model)
       }

@@ -5,6 +5,7 @@ import gleam/order.{Gt, Lt}
 import birl.{type Day}
 
 import util/time.{type Time, Time}
+import util/event as uev
 import util/numbers.{Pos}
 import util/duration.{type Duration, Duration}
 
@@ -85,12 +86,12 @@ pub type State {
   Loaded(
     today: Day,
     now: Time,
+    history: List(DayState),
     current_state: DayState,
     selected_event: Option(DayEvent),
     week_target: Duration,
     input_state: InputState)
 }
-
 
 pub type Msg {
   LoadState
@@ -104,6 +105,8 @@ pub type Msg {
   ToggleHome(index: Int)
   AddClockEvent
   AddHolidayBooking(kind: HolidayBookingKind)
+  PrevDay(modifiers: uev.ModifierState)
+  NextDay(modifiers: uev.ModifierState)
 }
 
 pub fn recalculate_events(events: List(DayEvent)) -> List(DayEvent) {
