@@ -1,12 +1,14 @@
 import gleam/list
-import gleam/option.{type Option, Some}
+import gleam/option.{type Option, Some, None}
 
 import lustre/element as e
 import lustre/element/html as eh
 import lustre/event as ev
 import lustre/attribute as a
+import birl
 
 import util/time
+import util/day
 import util/duration
 import model.{
   In, Out, Home, Office,
@@ -53,7 +55,7 @@ fn day_item_card(selected_index: Option(Int), event: DayEvent) {
     ])
 }
 
-fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int), now: time.Time) {
+fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int), now: time.Time, today: birl.Day) {
   let eta_text = case duration.is_positive(day_state.stats.eta) {
     True -> duration.to_string(day_state.stats.eta)
     False -> "Complete"
@@ -68,7 +70,10 @@ fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int
   }
 
   eh.div([ a.class("col-6") ],
-    [ eh.h3([ a.class("text-center") ], [ e.text("Day") ] )
+    [ eh.h3([ a.class("text-center") ],
+      [ e.text(day.to_string(day_state.date)) 
+      , case day.to_relative_string(day_state.date, today) { Some(str) -> e.text(" (" <> str <> ")") None -> e.none() }
+      ] )
     , eh.hr([])
     , eh.div([ a.class("row") ],
       [ text_input("target", "Target:", is.target_input, duration.to_unparsed_format_string(day_state.target), TargetChanged, duration.to_unparsed_format_string)
@@ -145,10 +150,10 @@ fn input_area(is: InputState, ds: DayStatistics) {
 pub fn view(model: State) {
   case model {
     Loading -> eh.div([], [ e.text("Loading...") ])
-    Loaded(_, now, st, se, _, is) -> {
+    Loaded(today, now, st, se, _, is) -> {
       let selected_index = se |> option.map(fn(e: DayEvent) { e.index })
       eh.div([ a.class("container row mx-auto") ],
-        [ day_item_list(st, is, selected_index, now)
+        [ day_item_list(st, is, selected_index, now, today)
         , input_area(is, st.stats)
         ])
     }
