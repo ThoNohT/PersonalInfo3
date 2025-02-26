@@ -5,7 +5,6 @@ import lustre/element as e
 import lustre/element/html as eh
 import lustre/event as ev
 import lustre/attribute as a
-import birl
 
 import util/event as uev
 import util/time
@@ -14,9 +13,9 @@ import util/duration
 import model.{
   In, Out, Home, Office,
   type DayEvent, ClockEvent, HolidayBooking,
-  type DayState, DayState, type DayStatistics,
+  type DayStatistics,
   type InputState, InputState,
-  type State, Loading, Loaded,
+  type Model, Loading, Loaded, type State, State,
   Gain, Use,
   TimeInputChanged, HolidayInputChanged, TargetChanged, LunchChanged,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
@@ -57,15 +56,15 @@ fn day_item_card(selected_index: Option(Int), event: DayEvent) {
     ])
 }
 
-fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int), now: time.Time, today: birl.Day) {
-  let eta_text = case duration.is_positive(day_state.stats.eta) {
-    True -> duration.to_string(day_state.stats.eta)
+fn day_item_list(st: State) {
+  let eta_text = case duration.is_positive(st.stats.eta) {
+    True -> duration.to_string(st.stats.eta)
     False -> "Complete"
   }
 
   let end_text =
-    case duration.is_positive(day_state.stats.eta),
-         duration.later(now, day_state.stats.eta) {
+    case duration.is_positive(st.stats.eta),
+         duration.later(st.now, st.stats.eta) {
     True, Some(done_at) -> [ eh.br([]) , e.text(time.to_string(done_at)) ]
     _, _ -> []
   }
@@ -76,14 +75,14 @@ fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int
       [ a.class("col-1 btn btn-primary"), uev.on_click_mod(PrevDay) ],
       [ e.text("<<") ])
     , eh.h3([ a.class("col-10 text-center") ],
-      [ e.text(day.to_string(day_state.date))
-      , case day.to_relative_string(day_state.date, today) {
+      [ e.text(day.to_string(st.current_state.date))
+      , case day.to_relative_string(st.current_state.date, st.today) {
           Some(str) -> e.text(" (" <> str <> ")")
           None -> e.none()
         }
       ])
     , eh.button(
-      [ a.class("col-1 btn btn-primary"), uev.on_click_mod(NextDay), a.disabled(today == day_state.date) ],
+      [ a.class("col-1 btn btn-primary"), uev.on_click_mod(NextDay), a.disabled(st.today == st.current_state.date) ],
       [ e.text(">>") ])
     ])
 
@@ -91,11 +90,11 @@ fn day_item_list(day_state: DayState, is: InputState, selected_index: Option(Int
     [ header
     , eh.hr([])
     , eh.div([ a.class("row") ],
-      [ text_input("target", "Target:", is.target_input, duration.to_unparsed_format_string(day_state.target), TargetChanged, duration.to_unparsed_format_string)
-      , check_input("lunch", "Lunch", day_state.lunch, LunchChanged)
+      [ text_input("target", "Target:", st.input_state.target_input, duration.to_unparsed_format_string(st.current_state.target), TargetChanged, duration.to_unparsed_format_string)
+      , check_input("lunch", "Lunch", st.current_state.lunch, LunchChanged)
       , eh.div([ a.class("col-3 p-2") ], [ eh.b([], [ e.text("ETA: ") ]), e.text(eta_text) , ..end_text ])
       ])
-    , eh.div([], day_state.events |> list.map(day_item_card(selected_index, _)))
+    , eh.div([], st.current_state.events |> list.map(day_item_card(st.selected_event_index, _)))
     ])
 }
 
@@ -162,14 +161,13 @@ fn input_area(is: InputState, ds: DayStatistics) {
   ])
 }
 
-pub fn view(model: State) {
+pub fn view(model: Model) {
   case model {
     Loading -> eh.div([], [ e.text("Loading...") ])
-    Loaded(today, now, _, st, se, _, is) -> {
-      let selected_index = se |> option.map(fn(e: DayEvent) { e.index })
+    Loaded(state) -> {
       eh.div([ a.class("container row mx-auto") ],
-        [ day_item_list(st, is, selected_index, now, today)
-        , input_area(is, st.stats)
+        [ day_item_list(state)
+        , input_area(state.input_state, state.stats)
         ])
     }
   }

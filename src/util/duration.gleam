@@ -54,7 +54,11 @@ pub fn later(time: time.Time, duration: Duration) -> Option(time.Time) {
   to_time(add(from_time(time), duration))
 }
 
+/// Returns a duration of zero length.
 pub fn zero() { Duration(0, 0, Pos, None) }
+
+/// Returns a duration of the specified number of hours.
+pub fn hours(hours: Int) { Duration(hours, 0, Pos, Some(DecimalFormat)) }
 
 /// Compares two Duration values.
 pub fn compare(a: Duration, b: Duration) -> Order {
