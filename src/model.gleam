@@ -59,8 +59,12 @@ pub type DayStatistics {
     remaining_holiday: Duration)
 }
 
+pub fn stats_zero() -> DayStatistics {
+  DayStatistics(duration.zero(), duration.zero(), duration.zero(), duration.zero(), duration.zero())
+}
+
 pub type DayState {
-  DayState(date: Day, target: Duration, lunch: Bool, events: List(DayEvent), stats: DayStatistics)
+  DayState(date: Day, target: Duration, lunch: Bool, events: List(DayEvent))
 }
 
 pub fn daystate_has_clock_event_at(ds: DayState, time: Time) {
@@ -81,14 +85,19 @@ pub type InputState {
   )
 }
 
-pub type State {
+pub type Model {
   Loading
-  Loaded(
+  Loaded(state: State)
+}
+
+pub type State {
+  State(
     today: Day,
     now: Time,
     history: List(DayState),
     current_state: DayState,
-    selected_event: Option(DayEvent),
+    stats: DayStatistics,
+    selected_event_index: Option(Int),
     week_target: Duration,
     input_state: InputState)
 }
@@ -131,7 +140,19 @@ pub fn recalculate_events(events: List(DayEvent)) -> List(DayEvent) {
   |> list.reverse
 }
 
-pub fn recalculate_statistics(st: DayState, now: Time, today: Day) -> DayState {
+pub fn update_history(state: State) -> State {
+  let update = fn(ds: DayState) {
+     case state.current_state.date == ds.date {
+       False -> ds
+       True -> state.current_state
+     }
+  }
+
+  State(..state, history: state.history |> list.map(update))
+}
+
+pub fn recalculate_statistics(state: State) -> State {
+  let st = state.current_state
   let add_hours = fn(stats: DayStatistics, location: ClockLocation, amount: Duration) {
     case location {
         Office -> DayStatistics(..stats,
@@ -171,16 +192,14 @@ pub fn recalculate_statistics(st: DayState, now: Time, today: Day) -> DayState {
   let stats = st.events |> list.fold(#(stats, None), folder)
 
   // Add the time between the last event and now, if the last event was an in-event.
-  let stats = case stats.1, today == st.date {
-    Some(state), True ->
-      add_hours(stats.0, state.0, duration.between(from: state.1, to: now))
+  let stats = case stats.1, state.today == st.date {
+    Some(s), True -> add_hours(stats.0, s.0, duration.between(from: s.1, to: state.now))
     _, _ -> stats.0
   }
 
   // If lunch is included, assume half an hour of clocked time doesn't exist. Take it from the longest period
   // of office or home, but prefer office if this cannot be determined. If no clock events, then don't
   // take any lunch away, since we didn't work at all.
-  // TODO: "Total: -1:42 / -0.3" -> Here the -0.3 is correct. But something is going wrong with subtracting 0.5 hours from a time less than 0.5 hours.
   let stats = case st.lunch, daystate_has_clock_events(st) {
     True, True -> {
       let half_hour = Duration(0, 30, Pos, None)
@@ -196,7 +215,5 @@ pub fn recalculate_statistics(st: DayState, now: Time, today: Day) -> DayState {
     _, _ -> stats
   }
 
-  let stats = DayStatistics(..stats, eta: duration.subtract(st.target, stats.total))
-
-  DayState(..st, stats: stats)
+  State(..state, stats: DayStatistics(..stats, eta: duration.subtract(st.target, stats.total)))
 }
