@@ -6,7 +6,9 @@ import gleam/option.{type Option, Some, None}
 pub type Parser(a) = fn(String) -> ParseResult(a)
 
 /// The parser state contains a parser result, and the remaining input string.
-pub type ParseState(a) = #(a, String)
+pub type ParseState(a) {
+  ParseState(result: a, remaining: String)
+}
 
 /// A parse result can either be failure, or success with a remaining parser state.
 pub type ParseResult(a) {
@@ -17,7 +19,7 @@ pub type ParseResult(a) {
 /// Converts an Option to a ParseResult.
 pub fn from_option(option: Option(a), remaining: String) -> ParseResult(a) {
   case option {
-    Some(st) -> Success(#(st, remaining))
+    Some(st) -> Success(ParseState(st, remaining))
     None -> Failed
   }
 }
@@ -25,7 +27,7 @@ pub fn from_option(option: Option(a), remaining: String) -> ParseResult(a) {
 /// Converts a Result to a ParseResult.
 pub fn from_result(option: Result(a, b), remaining: String) -> ParseResult(a) {
   case option {
-    Ok(st) -> Success(#(st, remaining))
+    Ok(st) -> Success(ParseState(st, remaining))
     Error(_) -> Failed
   }
 }
@@ -33,7 +35,7 @@ pub fn from_result(option: Result(a, b), remaining: String) -> ParseResult(a) {
 /// Converts a ParseResult to an Option.
 pub fn to_option(pr: ParseResult(a)) -> Option(a) {
   case pr {
-    Success(x) -> Some(x.0)
+    Success(x) -> Some(x.result)
     Failed -> None
   }
 }
@@ -49,20 +51,20 @@ pub fn then(result: ParseResult(a), apply fun: fn(ParseState(a)) -> ParseResult(
 /// Applies the provided function over the parse result.
 pub fn map(pr: ParseResult(a), f: fn(a) -> b) -> ParseResult(b) {
   use st <- then(pr)
-  Success(#(f(st.0), st.1))
+  Success(ParseState(..st, result: f(st.result)))
 }
 
 /// Applies the provided function returning an Option over the parse result.
 /// Fails if the option is None.
 pub fn bind(pr: ParseResult(a), f: fn(a) -> Option(b)) -> ParseResult(b) {
   use st <- then(pr)
-  f(st.0) |> from_option(st.1)
+  f(st.result) |> from_option(st.remaining)
 }
 
 /// option.when for ParseResult.
 fn when(result: ParseResult(a), check: fn(a) -> Bool) -> ParseResult(a) {
   use st <- then(result)
-  case check(st.0) {
+  case check(st.result) {
     True -> Success(st)
     False -> Failed
   }
@@ -85,7 +87,7 @@ pub fn pchar(state: String, char: String) -> ParseResult(UtfCodepoint) {
 /// Checks a parse result that there is no more remaining input, and changes it to failure otherwise.
 pub fn end(result: ParseResult(a)) -> ParseResult(a) {
   use state <- then(result)
-  case string.is_empty(state.1) {
+  case string.is_empty(state.remaining) {
     True -> Success(state)
     False -> Failed 
   }
@@ -107,7 +109,7 @@ pub fn star(state: String, parser: Parser(b)) -> ParseResult(List(b)) {
 /// Applies the specified parser one or more times, and returns the result as a list.
 pub fn plus(state: String, parser: Parser(a)) -> ParseResult(List(a)) {
   use first <- then(parser(state))
-  star_recurse([ first.0 ], first.1, parser, None)
+  star_recurse([ first.result ], first.remaining, parser, None)
 }
 
 /// Applies the specified parser exactly the specified number of times.
@@ -128,7 +130,7 @@ pub fn get_ucp(input: String) -> UtfCodepoint {
 /// if is not empty. Returns None otherwise.
 fn string_head(input: String) -> ParseResult(UtfCodepoint) {
   case string.to_utf_codepoints(input) {
-    [head, ..tail] -> Success(#(head, string.from_utf_codepoints(tail)))
+    [head, ..tail] -> Success(ParseState(head, string.from_utf_codepoints(tail)))
     _ -> Failed
   }
 }
@@ -144,16 +146,16 @@ fn star_recurse(acc: List(a), state: String, parser: Parser(a), target: Option(I
   case parser(state) {
     Failed ->
       case target {
-        Some(0) | None -> Success(#(list.reverse(acc), state))
+        Some(0) | None -> Success(ParseState(list.reverse(acc), state))
         _ -> Failed
       }
 
     Success(new_state) -> {
-      let res = [ new_state.0, ..acc ]
+      let res = [ new_state.result, ..acc ]
       case target {
-        None -> star_recurse(res, new_state.1, parser, None)
-        Some(1) -> Success(#(list.reverse(res), new_state.1))
-        Some(t) -> star_recurse(res, new_state.1, parser, Some(t-1))
+        None -> star_recurse(res, new_state.remaining, parser, None)
+        Some(1) -> Success(ParseState(..new_state, result: list.reverse(res)))
+        Some(t) -> star_recurse(res, new_state.remaining, parser, Some(t-1))
       }
     }
   }
