@@ -2,30 +2,28 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
 
+import birl.{type Day}
 import lustre
 import lustre/effect
+import lustre_http as http
 
-import util/numbers.{Pos}
-import util/duration.{Duration, DecimalFormat}
 import util/day
+import util/duration
 import util/effect as ef
-import util/time
+import util/time.{type Time}
+import parsing
 import model.{
   Office, In,
   ClockEvent, HolidayBooking,
   type DayState, DayState,
   type InputState, InputState,
-  type Model, Loading, Loaded,
+  type Model, Loading, Loaded, Err,
   type State, State,
   type Msg, LoadState, Tick, TimeInputChanged, HolidayInputChanged, TargetChanged, LunchChanged,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
   PrevDay, NextDay,
   validate, unvalidated}
 import view.{view}
-
-fn dispatch_message(message message) -> effect.Effect(message) {
-  effect.from(fn(dispatch) { dispatch(message) })
-}
 
 pub fn main() {
   let app = lustre.application(init, update, view)
@@ -35,37 +33,26 @@ pub fn main() {
 }
 
 fn init(_) {
-  #(Loading, dispatch_message(LoadState))
+  #(Loading, http.get("http://localhost:5500/state.txt", http.expect_text(LoadState)))
 }
 
 fn update(model: Model, msg: Msg) {
   case model {
     // Loading.
+    Err(_) -> ef.just(model)
     Loading -> {
       case msg {
-        LoadState -> {
-          let today = time.today()
-          let now = time.now()
+        LoadState(result) -> {
+          case result {
+            Error(_) -> ef.just(Err("Could not load state."))
+            Ok(res) -> {
+              let today = time.today()
+              let now = time.now()
 
-          let events = []
-          let current_state = DayState(date: today, target: duration.hours(8), lunch: True, events:)
-          let input_state = InputState(
-            clock_input: unvalidated(),
-            holiday_input: unvalidated(),
-            target_input: validate(duration.to_decimal_string(current_state.target, 2), duration.parse)
-          )
-
-          let state = State(
-            today:,
-            now:,
-            history: [ current_state ],
-            current_state:,
-            stats: model.stats_zero(),
-            selected_event_index: None,
-            week_target: Duration(40, 0, Pos, Some(DecimalFormat)),
-            input_state:
-          ) |> model.recalculate_statistics |> model.update_history
-          #(Loaded(state), effect.batch([ ef.dispatch(SelectListItem(0)), ef.every(1000, Tick) ]))
+              let state = load_state(res, today, now)
+              #(Loaded(state), effect.batch([ ef.dispatch(SelectListItem(0)), ef.every(1000, Tick) ]))
+            }
+          }
         }
         _ -> ef.just(model)
       }
@@ -213,4 +200,21 @@ fn update(model: Model, msg: Msg) {
       }
     }
   }
+}
+
+fn load_state(input: String, today: Day, now: Time) -> State {
+  // TODO: Proper handling of failing to parse.
+  let assert Some(state_input) = parsing.parse_state_input(input)
+
+  // Fixed values:
+  let input_state = InputState(unvalidated(), unvalidated(), unvalidated())
+  let selected_event_index = None
+  let stats = model.stats_zero()
+
+  let current_state = DayState(date: today, target: duration.hours(8), lunch: True, events: [])
+  State(
+    today:, now:, current_state:, stats:, selected_event_index:, input_state:,
+    history: state_input.history |> list.map(fn(d) { DayState(..d, events: d.events |> model.recalculate_events) }),
+    week_target: state_input.week_target,
+    travel_distance: state_input.travel_distance) |> model.recalculate_statistics
 }

@@ -3,6 +3,7 @@ import gleam/option.{type Option, Some, None}
 import gleam/order.{Gt, Lt}
 
 import birl.{type Day}
+import lustre_http as http
 
 import util/time.{type Time, Time}
 import util/event as uev
@@ -87,6 +88,7 @@ pub type InputState {
 
 pub type Model {
   Loading
+  Err(String)
   Loaded(state: State)
 }
 
@@ -99,11 +101,12 @@ pub type State {
     stats: DayStatistics,
     selected_event_index: Option(Int),
     week_target: Duration,
+    travel_distance: Float,
     input_state: InputState)
 }
 
 pub type Msg {
-  LoadState
+  LoadState(Result(String, http.HttpError))
   Tick
   TimeInputChanged(new_time: String)
   HolidayInputChanged(new_duration: String)
@@ -217,3 +220,4 @@ pub fn recalculate_statistics(state: State) -> State {
 
   State(..state, stats: DayStatistics(..stats, eta: duration.subtract(st.target, stats.total)))
 }
+

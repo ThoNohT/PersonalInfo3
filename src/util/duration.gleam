@@ -100,7 +100,7 @@ pub fn to_string(duration: Duration) -> String {
 fn from_time(time: time.Time) { Duration(time.hours, time.minutes, Pos, Some(TimeFormat)) }
 
 /// Converts a Duration to a Time, returns None if the duration is 24 hours or higher, or if it is negative.
-fn to_time(duration: Duration) -> Option(time.Time) {
+pub fn to_time(duration: Duration) -> Option(time.Time) {
   use _ <- prim.check(None, duration.hours < 24)
   use _ <- prim.check(None, is_positive(duration))
   Some(time.Time(duration.hours, duration.minutes))

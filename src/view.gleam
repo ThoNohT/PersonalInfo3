@@ -15,7 +15,7 @@ import model.{
   type DayEvent, ClockEvent, HolidayBooking,
   type DayStatistics,
   type InputState, InputState,
-  type Model, Loading, Loaded, type State, State,
+  type Model, Loading, Err, Loaded, type State, State,
   Gain, Use,
   TimeInputChanged, HolidayInputChanged, TargetChanged, LunchChanged,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
@@ -164,6 +164,7 @@ fn input_area(is: InputState, ds: DayStatistics) {
 pub fn view(model: Model) {
   case model {
     Loading -> eh.div([], [ e.text("Loading...") ])
+    Err(e) -> eh.div([], [ e.text("Error: " <> e) ])
     Loaded(state) -> {
       eh.div([ a.class("container row mx-auto") ],
         [ day_item_list(state)
