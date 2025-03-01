@@ -7,6 +7,7 @@ import lustre_http as http
 
 import util/time.{type Time, Time}
 import util/event as uev
+import util/day
 import util/numbers.{Pos}
 import util/duration.{type Duration, Duration}
 
@@ -156,6 +157,8 @@ pub fn update_history(state: State) -> State {
 
 pub fn recalculate_statistics(state: State) -> State {
   let st = state.current_state
+  let hist = state.history
+
   let add_hours = fn(stats: DayStatistics, location: ClockLocation, amount: Duration) {
     case location {
         Office -> DayStatistics(..stats,
@@ -167,14 +170,22 @@ pub fn recalculate_statistics(state: State) -> State {
     }
   }
 
-  let folder = fn(acc: #(DayStatistics, Option(#(ClockLocation, Time))), event: DayEvent) {
+  let holiday_folder = fn(acc: DayStatistics, event: DayEvent) {
     case event {
       HolidayBooking(_, dur, Gain) ->
-        #(DayStatistics(..acc.0, remaining_holiday: duration.add(acc.0.remaining_holiday, dur))
-         , acc.1)
+        DayStatistics(..acc, remaining_holiday: duration.add(acc.remaining_holiday, dur))
       HolidayBooking(_, dur, Use) ->
-        #(DayStatistics(..acc.0, remaining_holiday: duration.subtract(acc.0.remaining_holiday, dur))
-         , acc.1)
+        DayStatistics(..acc, remaining_holiday: duration.subtract(acc.remaining_holiday, dur))
+
+        // Ignore clock events here, we do them over the current state.
+        ClockEvent(..) -> acc
+    }
+  }
+
+  let folder = fn(acc: #(DayStatistics, Option(#(ClockLocation, Time))), event: DayEvent) {
+    case event {
+      // Ignore holiday bookings here, we do them over the entire history.
+      HolidayBooking(..) -> acc
 
       // Here, we assume clock events are always alternating In and then Out, this should be true if before calling
       // this fuction, recalculate_events was called. Otherwise, we will fail.
@@ -199,6 +210,12 @@ pub fn recalculate_statistics(state: State) -> State {
     Some(s), True -> add_hours(stats.0, s.0, duration.between(from: s.1, to: state.now))
     _, _ -> stats.0
   }
+
+  // Calculate holiday, after we no longer need the extra state for the folder.
+  let stats = hist
+    |> list.filter(fn(s) { day.compare(s.date, st.date) != Gt })
+    |> list.map(fn(s) { s.events }) |> list.flatten
+    |> list.fold(stats, holiday_folder)
 
   // If lunch is included, assume half an hour of clocked time doesn't exist. Take it from the longest period
   // of office or home, but prefer office if this cannot be determined. If no clock events, then don't

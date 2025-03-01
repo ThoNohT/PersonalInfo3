@@ -70,7 +70,7 @@ fn update(model: Model, msg: Msg) {
 
           // Only update if the time changed to the precision we observe it (minutes).
           use _ <- check(now != st.now)
-          ef.just(Loaded(State(..st, today:, now:) |> model.recalculate_statistics |> model.update_history))
+          ef.just(Loaded(State(..st, today:, now:) |> model.update_history |> model.recalculate_statistics))
         }
         TimeInputChanged(new_time) -> {
           let input_state = InputState(..st.input_state,
@@ -89,11 +89,11 @@ fn update(model: Model, msg: Msg) {
             None -> st.current_state
             Some(target) -> DayState(..st.current_state, target:)
           }
-          ef.just(Loaded(State(..st, current_state:, input_state:) |> model.recalculate_statistics |> model.update_history))
+          ef.just(Loaded(State(..st, current_state:, input_state:) |> model.update_history |> model.recalculate_statistics))
         }
         LunchChanged(new_lunch) -> {
           let current_state = DayState(..st.current_state, lunch: new_lunch)
-          ef.just(Loaded(State(..st, current_state:) |> model.recalculate_statistics |> model.update_history))
+          ef.just(Loaded(State(..st, current_state:) |> model.update_history |> model.recalculate_statistics))
         }
         SelectListItem(idx) -> {
           let selected_event = st.current_state.events |> list.drop(idx) |> list.first |> option.from_result
@@ -111,7 +111,7 @@ fn update(model: Model, msg: Msg) {
             [ _, ..af ] -> {
               // Takes out the element at idx.
               let current_state = DayState(..st.current_state, events: list.append(before, af) |> model.recalculate_events)
-              ef.just(Loaded(State(..st, current_state:) |> model.recalculate_statistics |> model.update_history))
+              ef.just(Loaded(State(..st, current_state:) |> model.update_history |> model.recalculate_statistics))
             }
             _ -> ef.just(model)
           }
@@ -127,7 +127,7 @@ fn update(model: Model, msg: Msg) {
 
           let new_events = st.current_state.events |> list.map(toggle_home)
           let current_state = DayState(..st.current_state, events: new_events |> model.recalculate_events)
-          ef.just(Loaded(State(..st, current_state:) |> model.recalculate_statistics |> model.update_history))
+          ef.just(Loaded(State(..st, current_state:) |> model.update_history |> model.recalculate_statistics))
         }
         AddClockEvent -> {
           use time <- then(st.input_state.clock_input.parsed)
@@ -136,7 +136,7 @@ fn update(model: Model, msg: Msg) {
           let new_event = ClockEvent(list.length(st.current_state.events), time, Office, In)
           let events = [ new_event, ..st.current_state.events ] |> model.recalculate_events
           let current_state = DayState(..st.current_state, events:)
-          ef.just(Loaded(State(..st, current_state:) |> model.recalculate_statistics |> model.update_history))
+          ef.just(Loaded(State(..st, current_state:) |> model.update_history |> model.recalculate_statistics))
         }
         AddHolidayBooking(kind) -> {
           use duration <- then(st.input_state.holiday_input.parsed)
@@ -144,7 +144,7 @@ fn update(model: Model, msg: Msg) {
           let new_event = HolidayBooking(list.length(st.current_state.events), duration, kind)
           let events = [ new_event, ..st.current_state.events ] |> model.recalculate_events
           let current_state = DayState(..st.current_state, events:)
-          ef.just(Loaded(State(..st, current_state:) |> model.recalculate_statistics |> model.update_history))
+          ef.just(Loaded(State(..st, current_state:) |> model.update_history |> model.recalculate_statistics))
         }
         PrevDay(_modifiers) -> {
           let to_day = day.prev(st.current_state.date)

@@ -1,6 +1,7 @@
 import gleam/int
 import gleam/string
 import gleam/option.{type Option, Some, None}
+import gleam/order.{type Order, Eq}
 
 import birl.{type Day, type Time}
 import birl/duration
@@ -49,4 +50,15 @@ pub fn to_relative_string(day: Day, today: Day) -> Option(String) {
         -1 -> Some("Yesterday")
         _ -> None
     }
+}
+
+/// Compares two Days.
+pub fn compare(a: Day, b: Day) -> Order {
+  case int.compare(a.year, b.year) {
+    Eq -> case int.compare(a.month, b.month) {
+      Eq -> int.compare(a.date, b.date)
+      other -> other
+    }
+    other -> other
+  }
 }

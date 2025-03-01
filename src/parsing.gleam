@@ -42,7 +42,7 @@ fn parse_float(input: String) -> ParseResult(Float) {
 /// Parses a Day.
 fn parse_date(input: String) -> ParseResult(Day) {
   use year <- p.then(
-    p.repeat(input, p.pcheck(_, p.char_is_digit), 4) 
+    p.repeat(input, p.pcheck(_, p.char_is_digit), 4)
     |> p.map(string.from_utf_codepoints)
     |> p.bind(fn(x) { int.parse(x) |> option.from_result })
   )
@@ -63,12 +63,12 @@ fn parse_date(input: String) -> ParseResult(Day) {
 
 /// Parses the letter that indicates whether lunch is enabled this day.
 fn parse_lunch(input: String) -> ParseResult(Bool) {
-  p.alt(input, p.pchar(_, "L"), p.pchar(_, "N")) 
+  p.alt(input, p.pchar(_, "L"), p.pchar(_, "N"))
   |> p.map(fn(l) {
     case string.from_utf_codepoints([ l ]) {
-      "L" -> True 
+      "L" -> True
       "N" -> False
-      _ -> panic as "Should always be L or N" 
+      _ -> panic as "Should always be L or N"
     }
   })
 }
@@ -109,7 +109,7 @@ fn parse_line(acc: ParseResult(StateInput), line: String) -> ParseResult(StateIn
   case string.pop_grapheme(line) {
     // Try to parse the week target.
     Ok(#("W", rest)) ->
-      parse_duration(rest) |> p.end 
+      parse_duration(rest) |> p.end
       |> p.map(fn(t) { StateInput(..si.result, week_target: t) })
 
     // Try to parse the travel distance.
