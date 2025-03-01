@@ -120,7 +120,7 @@ pub fn between(from from: time.Time, to to: time.Time) -> Duration {
 
 /// Indicates whether a duration is positive (not negative or zero).
 pub fn is_positive(duration: Duration) -> Bool {
-  duration.hours > 0 || { duration.hours == 0 && duration.minutes > 0 }
+  duration.sign == Pos && { duration.hours > 0 || duration.minutes > 0 }
 }
 
 /// Parses a duration from a string.
