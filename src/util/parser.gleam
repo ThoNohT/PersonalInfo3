@@ -70,7 +70,7 @@ fn when(result: ParseResult(a), check: fn(a) -> Bool) -> ParseResult(a) {
   }
 }
 
-// ---------- Parsers ---------- 
+// ---------- Parsers ----------
 
 /// A parser that succeeds if one character can be parsed, and the provided check on it succeeds.
 pub fn pcheck(state: String, check: fn(UtfCodepoint) -> Bool) -> ParseResult(UtfCodepoint) {
@@ -82,14 +82,14 @@ pub fn pchar(state: String, char: String) -> ParseResult(UtfCodepoint) {
   pcheck(state, fn(c) { c == get_ucp(char) })
 }
 
-// ---------- Combinators ---------- 
+// ---------- Combinators ----------
 
 /// Checks a parse result that there is no more remaining input, and changes it to failure otherwise.
 pub fn end(result: ParseResult(a)) -> ParseResult(a) {
   use state <- then(result)
   case string.is_empty(state.remaining) {
     True -> Success(state)
-    False -> Failed 
+    False -> Failed
   }
 }
 
@@ -117,7 +117,7 @@ pub fn repeat(state: String, parser: Parser(a), length: Int) -> ParseResult(List
   star_recurse([], state, parser, Some(length))
 }
 
-// ---------- Helpers ---------- 
+// ---------- Helpers ----------
 
 /// Returtns the UtfCodepoint for the specified character.
 /// Will fail if more than one character is provided.
