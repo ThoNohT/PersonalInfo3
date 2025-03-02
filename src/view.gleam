@@ -1,6 +1,7 @@
 import gleam/list
 import gleam/option.{type Option, Some, None}
 
+import birl
 import lustre/element as e
 import lustre/element/html as eh
 import lustre/event as ev
@@ -75,9 +76,10 @@ fn day_item_list(st: State) {
       [ a.class("col-1 btn btn-primary"), uev.on_click_mod(PrevDay) ],
       [ e.text("<<") ])
     , eh.h3([ a.class("col-10 text-center") ],
-      [ e.text(day.to_string(st.current_state.date))
+      [ e.text(day.weekday(st.current_state.date) |> birl.weekday_to_short_string <> " ")
+      , e.text(day.to_string(st.current_state.date))
       , case day.to_relative_string(st.current_state.date, st.today) {
-          Some(str) -> e.text(" (" <> str <> ")")
+          Some(str) -> eh.span([], [eh.br([]), e.text(" (" <> str <> ")") ])
           None -> e.none()
         }
       ])
