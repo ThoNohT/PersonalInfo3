@@ -1,6 +1,6 @@
 import gleam/list
 import gleam/option.{type Option, Some, None}
-import gleam/order.{Gt, Lt}
+import gleam/order.{Gt, Lt, Eq}
 
 import birl.{type Day}
 import lustre_http as http
@@ -172,10 +172,10 @@ pub fn recalculate_statistics(state: State) -> State {
     }
   }
 
-  let add_week =fn(stats: DayStatistics, amount: Duration) { 
+  let add_week = fn(stats: DayStatistics, amount: Duration) {
     DayStatistics(..stats, week: duration.add(stats.week, amount))
   }
-  
+
   let folder = fn(acc: #(DayStatistics, Option(#(ClockLocation, Time))), event: #(DayEvent, Day)) {
     let curr_day = event.1 == st.date
     let this_week = day.week_number(event.1) == day.week_number(st.date)
@@ -241,3 +241,22 @@ pub fn recalculate_statistics(state: State) -> State {
   State(..state, stats: DayStatistics(..stats, eta: duration.subtract(st.target, stats.total)))
 }
 
+/// Adds a new DayState at the specified day in the state history.
+pub fn add_day_state(state: State, day: Day) -> State {
+  let lunch = case day.weekday(day) { birl.Sat | birl.Sun -> False _ -> True }
+  let target = case day.weekday(day) { birl.Sat | birl.Sun -> duration.zero() _ -> duration.hours(8) }
+  let current_state = DayState(date: day, target:, lunch:, events: [])
+
+  let folder = fn(acc: #(List(DayState), Option(DayState)), state: DayState) -> #(List(DayState), Option(DayState)) {
+    case acc.1, day.compare(day, state.date) {
+      Some(_), _ -> #([state, ..acc.0], acc.1)
+      None, Eq -> #([state, ..acc.0], Some(state))
+      None, Gt -> #([state, ..acc.0], acc.1)
+      // The first time the day is smaller than the history entry, prepend it.
+      None, Lt -> #([state, current_state, ..acc.0], Some(current_state))
+    }
+  }
+
+  let result = state.history |> list.fold(#([], None), folder)
+  State(..state, current_state: result.1 |> option.unwrap(current_state), history: result.0)
+}
