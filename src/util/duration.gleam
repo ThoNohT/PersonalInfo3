@@ -62,10 +62,8 @@ pub fn hours(hours: Int) { Duration(hours, 0, Pos, Some(DecimalFormat)) }
 
 /// Compares two Duration values.
 pub fn compare(a: Duration, b: Duration) -> Order {
-  case int.compare(a.hours, b.hours) {
-    Eq -> int.compare(a.minutes, b.minutes)
-    other -> other
-  }
+  use _ <- prim.compare_try(int.compare(a.hours, b.hours))
+  int.compare(a.minutes, b.minutes)
 }
 
 /// Converts a Duration to a string in the format h:mm.

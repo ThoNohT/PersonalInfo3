@@ -1,7 +1,7 @@
 import gleam/option.{type Option, Some, None}
 import gleam/string
 import gleam/int
-import gleam/order.{type Order, Eq}
+import gleam/order.{type Order}
 
 import birl
 
@@ -34,10 +34,8 @@ pub fn to_string(time: Time) -> String {
 
 /// Compares two Time values.
 pub fn compare(a: Time, b: Time) -> Order {
-  case int.compare(a.hours, b.hours) {
-    Eq -> int.compare(a.minutes, b.minutes)
-    other -> other
-  }
+  use _ <- prim.compare_try(int.compare(a.hours, b.hours))
+  int.compare(a.minutes, b.minutes)
 }
 
 pub fn parse_split_time(hour: String, minute: String, limit_hours: Bool) {
