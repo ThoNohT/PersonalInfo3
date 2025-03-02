@@ -150,20 +150,9 @@ fn update(model: Model, msg: Msg) {
           let to_day = day.prev(st.current_state.date)
           // TODO: Modifiers step in bigger increments, but only so far as there is recorded history.
 
-          // Find the day in the state history. If it is not in there, create a new one and prepend it.
-          // This will prevent gaps in the list since we can only step by one day at a time, once we have reached the
-          // start of the history.
-          let state = case st.history {
-            [ first, ..] if first.date == st.current_state.date -> {
-              // We were at the first element, prepend one.
-              let current_state = DayState(date: to_day, target: duration.hours(8), lunch: True, events: [])
-              State(..st, current_state:, history: [current_state, ..st.history])
-                |> model.recalculate_statistics
-            }
-            _ -> {
-              let assert Ok(current_state) = list.find(st.history, fn(s: DayState) { s.date == to_day })
-              State(..st, current_state:) |> model.recalculate_statistics
-            }
+          let state = case list.find(st.history, fn(s: DayState) { s.date == to_day }) {
+            Ok(current_state) -> State(..st, current_state:) |> model.recalculate_statistics
+            Error(_) -> model.add_day_state(st, to_day) |> model.recalculate_statistics
           }
 
           let input_state = InputState(..state.input_state,
@@ -172,25 +161,13 @@ fn update(model: Model, msg: Msg) {
           ef.just(Loaded(State(..state, input_state:)))
         }
         NextDay(_modifiers) -> {
+          let to_day = day.next(st.current_state.date)
           // TODO: Modifiers step in bigger increments, but only so far as there is recorded history.
 
-          let to_day = day.next(st.current_state.date)
           let state = case list.find(st.history, fn(s: DayState) { s.date == to_day }) {
-            Ok(current_state) -> {
-              // If the next day is in the list, simply switch to it.
-              let state = State(..st, current_state:) |> model.recalculate_statistics
-              state
-            }
-            Error(_) -> {
-              // If it is not in the list we must be heading to the next day from the end of the list, since we only
-              // allow stepping ahead of the last item in the history by one day.
-              let current_state = DayState(date: to_day, target: duration.hours(8), lunch: True, events: [])
-              let state = State(..st, current_state:, history: list.append(st.history, [ current_state ]))
-                |> model.recalculate_statistics
-              state
-            }
+            Ok(current_state) -> State(..st, current_state:) |> model.recalculate_statistics
+            Error(_) -> model.add_day_state(st, to_day) |> model.recalculate_statistics
           }
-
           let input_state = InputState(..state.input_state,
             target_input: validate(duration.to_decimal_string(state.current_state.target, 2), duration.parse)
           )
@@ -211,10 +188,15 @@ fn load_state(input: String, today: Day, now: Time) -> State {
   let selected_event_index = None
   let stats = model.stats_zero()
 
-  let current_state = DayState(date: today, target: duration.hours(8), lunch: True, events: [])
-  State(
+  // Make some current state, it will be replaced by add_day_state.
+  let current_state = DayState(date: today, target: duration.zero(), lunch: False, events: [])
+  let state = State(
     today:, now:, current_state:, stats:, selected_event_index:, input_state:,
     history: state_input.history |> list.map(fn(d) { DayState(..d, events: d.events |> model.recalculate_events) }),
     week_target: state_input.week_target,
-    travel_distance: state_input.travel_distance) |> model.recalculate_statistics
+    travel_distance: state_input.travel_distance) |> model.add_day_state(today) |> model.recalculate_statistics
+
+  let input_state = InputState(..input_state,
+    target_input: validate(duration.to_decimal_string(state.current_state.target, 2), duration.parse))
+  State(..state, input_state:)
 }
