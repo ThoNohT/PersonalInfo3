@@ -131,6 +131,12 @@ fn input_area(is: InputState, ds: DayStatistics) {
   let btn = fn(msg, txt, enabled) {
     eh.button([ a.class("col-2 btn btn-sm btn-outline-primary m-1 mb-4"), ev.on_click(msg), a.disabled(!enabled) ], [ e.text(txt) ])
   }
+
+  let eta_text = case duration.is_positive(ds.week_eta) {
+    True -> duration.to_string(ds.week_eta)
+    False -> "Complete"
+  }
+
   eh.div([ a.class("col-6") ],
   [ eh.div([ a.class("") ],
     [ eh.h3([ a.class("text-center") ], [ e.text("Input") ] )
@@ -153,8 +159,8 @@ fn input_area(is: InputState, ds: DayStatistics) {
     , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total (office): ") ]), e.text(duration.to_string(ds.total_office)) ])
     , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Total (home): ") ]), e.text(duration.to_string(ds.total_home)) ])
     , eh.hr([])
-    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Week: ") ]), e.text("TODO") ])
-    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("ETA: ") ]), e.text("TODO") ])
+    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Week: ") ]), e.text(duration.to_string(ds.week)) ])
+    , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("ETA: ") ]), e.text(eta_text) ])
     , eh.hr([])
     , eh.div([ a.class("row p-2") ], [ eh.b([ a.class("col-3") ], [ e.text("Holiday left: ") ]), e.text(duration.to_string(ds.remaining_holiday)) ])
     ])

@@ -5,6 +5,7 @@ import gleam/order.{Gt, Lt}
 import birl.{type Day}
 import lustre_http as http
 
+import util/prim
 import util/time.{type Time, Time}
 import util/event as uev
 import util/day
@@ -58,11 +59,12 @@ pub type DayStatistics {
   DayStatistics(
     eta: Duration,
     total: Duration, total_office: Duration, total_home: Duration,
+    week: Duration, week_eta: Duration,
     remaining_holiday: Duration)
 }
 
 pub fn stats_zero() -> DayStatistics {
-  DayStatistics(duration.zero(), duration.zero(), duration.zero(), duration.zero(), duration.zero())
+  DayStatistics(duration.zero(), duration.zero(), duration.zero(), duration.zero(), duration.zero(), duration.zero(), duration.zero())
 }
 
 pub type DayState {
@@ -170,52 +172,53 @@ pub fn recalculate_statistics(state: State) -> State {
     }
   }
 
-  let holiday_folder = fn(acc: DayStatistics, event: DayEvent) {
-    case event {
-      HolidayBooking(_, dur, Gain) ->
-        DayStatistics(..acc, remaining_holiday: duration.add(acc.remaining_holiday, dur))
-      HolidayBooking(_, dur, Use) ->
-        DayStatistics(..acc, remaining_holiday: duration.subtract(acc.remaining_holiday, dur))
-
-        // Ignore clock events here, we do them over the current state.
-        ClockEvent(..) -> acc
-    }
+  let add_week =fn(stats: DayStatistics, amount: Duration) { 
+    DayStatistics(..stats, week: duration.add(stats.week, amount))
   }
+  
+  let folder = fn(acc: #(DayStatistics, Option(#(ClockLocation, Time))), event: #(DayEvent, Day)) {
+    let curr_day = event.1 == st.date
+    let this_week = day.week_number(event.1) == day.week_number(st.date)
 
-  let folder = fn(acc: #(DayStatistics, Option(#(ClockLocation, Time))), event: DayEvent) {
-    case event {
-      // Ignore holiday bookings here, we do them over the entire history.
-      HolidayBooking(..) -> acc
+    case event.0 {
+      HolidayBooking(_, dur, Gain) ->
+        #(DayStatistics(..acc.0, remaining_holiday: duration.add(acc.0.remaining_holiday, dur)), acc.1)
+      HolidayBooking(_, dur, Use) ->
+        #(DayStatistics(..acc.0, remaining_holiday: duration.subtract(acc.0.remaining_holiday, dur)), acc.1)
 
-      // Here, we assume clock events are always alternating In and then Out, this should be true if before calling
-      // this fuction, recalculate_events was called. Otherwise, we will fail.
       ClockEvent(_, time, loc, In) -> {
-        let assert None = acc.1
+        use _ <- prim.check(acc, this_week)
         #(acc.0, Some(#(loc, time)))
       }
+
       ClockEvent(_, time, _, Out) -> {
         // Location can be ignored here. We will use the location of the clock-in event.
+        use _ <- prim.check(acc, this_week)
         let assert Some(state) = acc.1
+        let acc = #(add_week(acc.0, duration.between(from: state.1, to: time)), acc.1)
+        use _ <- prim.check(acc, curr_day)
         #(add_hours(acc.0, state.0, duration.between(from: state.1, to: time)), None)
       }
     }
   }
 
-  // Determine the totals.
-  let stats = DayStatistics(duration.zero(), duration.zero(), duration.zero(), duration.zero(), duration.zero())
-  let stats = st.events |> list.fold(#(stats, None), folder)
+  // Calculate all totals.
+  let stats = hist
+    |> list.filter(fn(s) { day.compare(s.date, st.date) != Gt })
+    |> list.map(fn(s) { s.events |> recalculate_events |> list.map(fn(e) { #(e, s.date) }) }) |> list.flatten
+    |> list.fold(#(stats_zero(), None), folder)
 
   // Add the time between the last event and now, if the last event was an in-event.
   let stats = case stats.1, state.today == st.date {
-    Some(s), True -> add_hours(stats.0, s.0, duration.between(from: s.1, to: state.now))
+    Some(s), True -> {
+      stats.0
+      |> add_hours(s.0, duration.between(from: s.1, to: state.now))
+      |> add_week(duration.between(from: s.1, to: state.now))
+    }
     _, _ -> stats.0
   }
 
-  // Calculate holiday, after we no longer need the extra state for the folder.
-  let stats = hist
-    |> list.filter(fn(s) { day.compare(s.date, st.date) != Gt })
-    |> list.map(fn(s) { s.events }) |> list.flatten
-    |> list.fold(stats, holiday_folder)
+  let stats = DayStatistics(..stats, week_eta: duration.subtract(state.week_target, stats.week))
 
   // If lunch is included, assume half an hour of clocked time doesn't exist. Take it from the longest period
   // of office or home, but prefer office if this cannot be determined. If no clock events, then don't
