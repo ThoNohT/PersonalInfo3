@@ -77,6 +77,7 @@ pub fn to_time_string(duration: Duration) -> String {
 /// Converts a Duration to a string as a decimal.
 pub fn to_decimal_string(duration: Duration, decimals: Int) -> String {
   let frac = int.to_float(to_minutes(duration)) /. 60.0
+  case duration.sign { Pos -> "" Neg -> "-" } <>
   float.to_string(float.to_precision(frac, decimals))
 }
 
