@@ -149,16 +149,8 @@ fn input_area(is: InputState, ds: DayStatistics) {
   }
 
   let clock_keydown_handler = fn(tuple: #(uev.ModifierState, String)) -> #(Msg, Bool) {
-    let key = tuple.1
-    let pd = case True {
-      Nil if string.length(key) == 1 -> True
-      _ -> False
-
-
-
-    }
-
-    #(TimeInputKeyDown(tuple.0), pd)
+    // let key = tuple.1
+    #(TimeInputKeyDown(tuple.0), False)
   }
 
   eh.div([ a.class("col-6") ],
