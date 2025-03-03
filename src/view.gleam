@@ -18,7 +18,9 @@ import model.{
   type InputState, InputState,
   type Model, Loading, Err, Loaded, type State, State,
   Gain, Use,
+  type Msg,
   TimeInputChanged, HolidayInputChanged, TargetChanged, LunchChanged,
+  TimeInputKeyDown,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
   PrevDay, NextDay,
   type Validated, is_valid}
@@ -92,7 +94,7 @@ fn day_item_list(st: State) {
     [ header
     , eh.hr([])
     , eh.div([ a.class("row") ],
-      [ text_input("target", "Target:", st.input_state.target_input, duration.to_unparsed_format_string(st.current_state.target), TargetChanged, duration.to_unparsed_format_string)
+      [ text_input("target", "Target:", st.input_state.target_input, duration.to_unparsed_format_string(st.current_state.target), TargetChanged, None, duration.to_unparsed_format_string, False)
       , check_input("lunch", "Lunch", st.current_state.lunch, LunchChanged)
       , eh.div([ a.class("col-3 p-2") ], [ eh.b([], [ e.text("ETA: ") ]), e.text(eta_text) , ..end_text ])
       ])
@@ -100,7 +102,7 @@ fn day_item_list(st: State) {
     ])
 }
 
-fn text_input(name, label, value: Validated(a), invalid_message, input_message, parsed_to_string) {
+fn text_input(name, label, value: Validated(a), invalid_message, input_message, keydown_message, parsed_to_string, autofocus) {
   eh.div([ a.class("col-6 row container justify-content-start") ],
   [ eh.label([ a.for(name <> "-input"), a.class("col-4 px-0 py-2") ], [ e.text(label) ])
 
@@ -108,7 +110,9 @@ fn text_input(name, label, value: Validated(a), invalid_message, input_message, 
     [ eh.input(
       [ a.type_("text") , a.class("form-control time-form") , a.id(name <> "-input")
       , a.value(value.input)
+      , a.autofocus(autofocus)
       , a.classes([ #("is-invalid", !is_valid(value)), #("is-valid", is_valid(value)) ] )
+      , keydown_message |> option.map(fn(msg) { uev.on_keydown_mod(msg) }) |> option.unwrap(a.none())
       , ev.on_input(input_message)
       ])
     , eh.div([ a.class("invalid-feedback") ], [ e.text(invalid_message) ])
@@ -131,7 +135,12 @@ fn check_input(name, label, value, input_message) {
 
 fn input_area(is: InputState, ds: DayStatistics) {
   let btn = fn(msg, txt, enabled) {
-    eh.button([ a.class("col-2 btn btn-sm btn-outline-primary m-1 mb-4"), ev.on_click(msg), a.disabled(!enabled) ], [ e.text(txt) ])
+    eh.button(
+      [ a.class("col-2 btn btn-sm btn-outline-primary m-1 mb-4")
+      , ev.on_click(msg)
+      , a.disabled(!enabled)
+      ],
+      [ e.text(txt) ])
   }
 
   let eta_text = case duration.is_positive(ds.week_eta) {
@@ -139,16 +148,29 @@ fn input_area(is: InputState, ds: DayStatistics) {
     False -> "Complete"
   }
 
+  let clock_keydown_handler = fn(tuple: #(uev.ModifierState, String)) -> #(Msg, Bool) {
+    let key = tuple.1
+    let pd = case True {
+      Nil if string.length(key) == 1 -> True
+      _ -> False
+
+
+
+    }
+
+    #(TimeInputKeyDown(tuple.0), pd)
+  }
+
   eh.div([ a.class("col-6") ],
   [ eh.div([ a.class("") ],
     [ eh.h3([ a.class("text-center") ], [ e.text("Input") ] )
     , eh.hr([])
     , eh.div([ a.class("row") ],
-      [ text_input("clock", "Clock:", is.clock_input, "Invalid time.", TimeInputChanged, time.to_string)
+      [ text_input("clock", "Clock:", is.clock_input, "Invalid time.", TimeInputChanged, Some(clock_keydown_handler), time.to_string, True)
       , btn(AddClockEvent, "Add", is_valid(is.clock_input))
       ])
     , eh.div([ a.class("row") ],
-      [ text_input("holiday", "Holiday:", is.holiday_input, "Invalid duration.", HolidayInputChanged, duration.to_unparsed_format_string)
+      [ text_input("holiday", "Holiday:", is.holiday_input, "Invalid duration.", HolidayInputChanged, None, duration.to_unparsed_format_string, False)
       , btn(AddHolidayBooking(Gain), "Gain", is_valid(is.holiday_input))
       , btn(AddHolidayBooking(Use), "Use", is_valid(is.holiday_input))
       ])

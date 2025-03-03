@@ -112,6 +112,7 @@ pub type Msg {
   LoadState(Result(String, http.HttpError))
   Tick
   TimeInputChanged(new_time: String)
+  TimeInputKeyDown(modifiers: uev.ModifierState)
   HolidayInputChanged(new_duration: String)
   TargetChanged(new_target: String)
   LunchChanged(new_lunch: Bool)
