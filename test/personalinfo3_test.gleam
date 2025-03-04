@@ -8,7 +8,7 @@ import birl.{Day}
 import util/numbers.{Pos, Neg}
 import util/day
 import util/duration.{Duration}
-import util/parser2 as p
+import util/parser as p
 
 pub fn main() {
   gleeunit.main()
@@ -34,7 +34,7 @@ pub fn week_number_test() {
   Day(2006, 1, 1) |> day.week_number |> should.equal(52)
 }
 
-pub fn parser2_test() {
+pub fn parser_test() {
   // pchar.
   p.pchar() |> p.run("x") |> should.equal(Some("x"))
 
@@ -50,7 +50,7 @@ pub fn parser2_test() {
     use _ <- p.then(p.end())
 
     p.success(ch1 <> ch2)
-  } 
+  }
   combined_parser |> p.run("01") |> should.equal(Some("01"))
   combined_parser |> p.run("0") |> should.equal(None)
   combined_parser |> p.run("012") |> should.equal(None)

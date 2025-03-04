@@ -5,7 +5,8 @@ import gleam/string
 
 import birl.{type Day, Day}
 
-import util/parser2.{type Parser} as p
+import util/prim
+import util/parser.{type Parser} as p
 import util/numbers.{Pos}
 import util/duration.{type Duration, Duration}
 import model.{
@@ -90,7 +91,7 @@ fn parse_day_event() -> Parser(DayEvent) {
       p.success(ClockEvent(0, time, Home, In))
     }
     "v" -> p.success(HolidayBooking(0, dur, Gain))
-    "V" -> p.success(HolidayBooking(0, dur, Use)) 
+    "V" -> p.success(HolidayBooking(0, dur, Use))
     _ -> p.failure()
   }
 }
@@ -105,9 +106,11 @@ fn parse_day_state() -> Parser(DayState) {
 }
 
 fn parse_line(acc: Option(StateInput), line: String) -> Option(StateInput) {
+  use _ <- prim.check(acc, !{string.is_empty(line)}) // Skip empty lines.
   use si <- option.then(acc)
 
   let parser = {
+    use checkpoint <- p.save_state()
     use ch <- p.then(p.pchar())
     case ch {
       // Try to parse the week target.
@@ -126,6 +129,7 @@ fn parse_line(acc: Option(StateInput), line: String) -> Option(StateInput) {
 
       // Otherwise try to parse a day state.
       _ -> {
+        use _ <- p.restore(checkpoint)
         use st <- p.then(parse_day_state())
         use _ <- p.then(p.end())
         p.success(StateInput(..si, history: [ st, ..si.history ]))
@@ -137,9 +141,11 @@ fn parse_line(acc: Option(StateInput), line: String) -> Option(StateInput) {
 }
 
 pub fn parse_state_input(input: String) -> Option(StateInput) {
-  let init = StateInput(duration.zero(), 0.0, [])
   input
-    |> string.replace("\r", "") |> string.split("\n") // Split in lines.
-    |> list.fold(Some(init), parse_line) // Parse input (history will be reversed).
-    |> option.map(fn(st) { StateInput(..st, history: list.reverse(st.history)) }) // Reverse history.
+    // Split in lines.
+    |> string.replace("\r", "") |> string.split("\n")
+    // Parse input (history will be reversed).
+    |> list.fold(Some(StateInput(duration.zero(), 0.0, [])), parse_line)
+    // Reverse history.
+    |> option.map(fn(st) { StateInput(..st, history: list.reverse(st.history)) })
 }
