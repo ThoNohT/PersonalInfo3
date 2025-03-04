@@ -2,18 +2,18 @@ import gleam/io
 import gleam/option.{type Option, Some, None}
 import gleam/string
 
-pub type ParseSuccess(a) { ParseSuccess(result: a, remaining: String) }
+pub type ParseSuccess(a) { ParseSuccess(result: a, remaining: List(String)) }
 pub type ParseResult(a) = Option(ParseSuccess(a))
-pub type Parser(a) = fn(String) -> ParseResult(a)
+pub type Parser(a) = fn(List(String)) -> ParseResult(a)
 
 /// Runs a parser.
 pub fn run(p: Parser(a), input: String) -> Option(a) {
-  p(input) |> option.map(fn(x) { x.result })
+  input |> string.to_graphemes |> p |> option.map(fn(x) { x.result })
 }
 
 /// A parser that returns the specified value and doesnt't consume anything.
 pub fn success(res: a) -> Parser(a) {
-  fn(remaining: String) { Some(ParseSuccess(res, remaining)) }
+  fn(input) { Some(ParseSuccess(res, input)) }
 }
 
 /// A parser that always fails.
@@ -37,25 +37,25 @@ pub fn from_option(res: Option(a)) -> Parser(a) {
 
 /// A parser that consumes a single character and returns it.
 pub fn pchar() -> Parser(String) {
-  fn(remaining) {
-    case string.pop_grapheme(remaining) {
-      Ok(#(head, remaining)) -> Some(ParseSuccess(head, remaining))
-      Error(_) -> None
+  fn(input) {
+    case input {
+      [ head, ..remaining ] -> Some(ParseSuccess(head, remaining))
+      [] -> None
     }
   }
 }
 
 /// A parser that succeeds if there is no more input left, and fails otherwise.
 pub fn end() -> Parser(Nil) {
-  fn(input: String) {
-    case string.is_empty(input) { True -> Some(ParseSuccess(Nil, input)) False -> None }
+  fn(input) {
+    case input { [] -> Some(ParseSuccess(Nil, input)) _ -> None }
   }
 }
 
 /// Combines two parser by running the second parser after the first one, using its result.
 /// This should allow parsers to be used in a use block.
 pub fn then(p: Parser(a), then: fn(a) -> Parser(b)) -> Parser(b) {
-  fn(input: String) {
+  fn(input) {
     case p(input) {
       Some(ps) -> then(ps.result)(ps.remaining)
       None -> None
@@ -87,7 +87,7 @@ pub fn char(char: String) -> Parser(String) { check(fn(c) { c == char }) }
 /// A parser that combines two parsers, by trying the first one first, and only if it fails,
 /// trying the second one on the same input.
 pub fn alt(p1: Parser(a), p2: Parser(a)) -> Parser(a) {
-  fn(input: String) { case p1(input) { Some(r) -> Some(r) None -> p2(input) } }
+  fn(input) { case p1(input) { Some(r) -> Some(r) None -> p2(input) } }
 }
 
 /// A parser that tries all parsers in the provided list in turn, returning the result of the first
@@ -157,19 +157,19 @@ pub fn char_is_digit(char: String) -> Bool {
 /// A parser that prints the input string for debugging purposes.
 pub fn debug(fail: Bool) -> Parser(Nil) {
   fn(input) {
-    io.println("Debug: " <> input)
+    io.println("Debug: " <> string.concat(input))
     case fail { False -> Some(ParseSuccess(Nil, input)) True -> None }
   }
 }
 
 /// A helper to save a snapshot of the current parser state.
-pub fn save_state(next: fn(String) -> Parser(b)) -> Parser(b) {
+pub fn save_state(next: fn(List(String)) -> Parser(b)) -> Parser(b) {
   let p = fn(input) { Some(ParseSuccess(input, input)) }
   then(p, next)
 }
 
 /// A helper to restore a snapshot of a parser state before moving on to the next parser.
-pub fn restore(state: String, next: fn(Nil) -> Parser(b)) -> Parser(b) {
+pub fn restore(state, next: fn(Nil) -> Parser(b)) -> Parser(b) {
   let p = fn(_) { Some(ParseSuccess(Nil, state)) }
   then(p, next)
 }
