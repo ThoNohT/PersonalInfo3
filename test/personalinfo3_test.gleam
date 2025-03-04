@@ -8,6 +8,7 @@ import birl.{Day}
 import util/numbers.{Pos, Neg}
 import util/day
 import util/duration.{Duration}
+import util/time.{Time}
 import util/parser as p
 
 pub fn main() {
@@ -25,6 +26,30 @@ pub fn from_minutes_test() {
     |> should.equal(Duration(1, 15, Neg, None))
   duration.from_minutes(-15)
     |> should.equal(Duration(0, 15, Neg, None))
+}
+
+pub fn add_minutes_test() {
+  Time(7, 15) |> time.add_minutes(15) |> should.equal(Time(7, 30))
+  Time(7, 45) |> time.add_minutes(20) |> should.equal(Time(8, 5))
+  Time(23, 45) |> time.add_minutes(20) |> should.equal(Time(0, 5))
+  Time(23, 45) |> time.add_minutes(80) |> should.equal(Time(1, 5))
+  Time(0, 8) |> time.add_minutes(-9) |> should.equal(Time(23, 59))
+  Time(0, 8) |> time.add_minutes(-79) |> should.equal(Time(22, 49))
+}
+
+pub fn add_minutes_to_test() {
+  Time(7, 15) |> time.add_minutes_to(15) |> should.equal(Time(7, 30))
+  Time(7, 14) |> time.add_minutes_to(-15) |> should.equal(Time(7, 0))
+  Time(7, 15) |> time.add_minutes_to(-15) |> should.equal(Time(7, 0))
+
+  Time(7, 18) |> time.add_minutes_to(15) |> should.equal(Time(7, 30))
+  Time(7, 10) |> time.add_minutes_to(-15) |> should.equal(Time(7, 0))
+
+  Time(7, 18) |> time.add_minutes_to(60) |> should.equal(Time(8, 0))
+  Time(7, 18) |> time.add_minutes_to(-60) |> should.equal(Time(7, 0))
+
+  Time(8, 0) |> time.add_minutes_to(60) |> should.equal(Time(9, 0))
+  Time(8, 0) |> time.add_minutes_to(-60) |> should.equal(Time(7, 0))
 }
 
 pub fn week_number_test() {

@@ -7,7 +7,6 @@ import lustre_http as http
 
 import util/prim
 import util/time.{type Time, Time}
-import util/event as uev
 import util/day
 import util/numbers.{Pos}
 import util/duration.{type Duration, Duration}
@@ -108,11 +107,21 @@ pub type State {
     input_state: InputState)
 }
 
+/// The different amounts that can be moved through the history.
+pub type DateMoveAmount { MoveDay MoveWeek MoveMonth MoveYear MoveMonthStart MoveYearStart ToToday }
+
+/// The different amounts that can be moved through time/durations.
+pub type TimeMoveAmount { MoveMinute MoveQuarter MoveStartQuarter MoveHour MoveStartHour ToNow }
+
+/// The directions in which can be moved through time.
+pub type MoveDirection { Forward Backward }
+
 pub type Msg {
+  NoOp
   LoadState(Result(String, http.HttpError))
   Tick
   TimeInputChanged(new_time: String)
-  TimeInputKeyDown(modifiers: uev.ModifierState)
+  TimeInputKeyDown(amount: TimeMoveAmount, dir: MoveDirection)
   HolidayInputChanged(new_duration: String)
   TargetChanged(new_target: String)
   LunchChanged(new_lunch: Bool)
@@ -121,8 +130,7 @@ pub type Msg {
   ToggleHome(index: Int)
   AddClockEvent
   AddHolidayBooking(kind: HolidayBookingKind)
-  PrevDay(modifiers: uev.ModifierState)
-  NextDay(modifiers: uev.ModifierState)
+  ChangeDay(amount: DateMoveAmount, dir: MoveDirection)
 }
 
 pub fn recalculate_events(events: List(DayEvent)) -> List(DayEvent) {
@@ -260,4 +268,24 @@ pub fn add_day_state(state: State, day: Day) -> State {
 
   let result = state.history |> list.fold(#([], None), folder)
   State(..state, current_state: result.1 |> option.unwrap(current_state), history: result.0)
+}
+
+/// Calculates the new time based on a move amount and direction, and the current time input.
+pub fn calculate_target_time(current: Option(Time), amount: TimeMoveAmount, dir: MoveDirection, now: Time) -> Option(Time) {
+  use _ <- prim.check(Some(now), amount != ToNow)
+  use current <- option.then(current)
+
+  case amount, dir {
+   MoveMinute, Forward -> time.add_minutes(current, 1)
+   MoveMinute, Backward -> time.add_minutes(current, -1)
+   MoveQuarter, Forward -> time.add_minutes(current, 15)
+   MoveQuarter, Backward -> time.add_minutes(current, -15)
+   MoveStartQuarter, Forward -> time.add_minutes_to(current, 15)
+   MoveStartQuarter, Backward -> time.add_minutes_to(current, -15)
+   MoveHour, Forward -> time.add_minutes(current, 60)
+   MoveHour, Backward -> time.add_minutes(current, -60)
+   MoveStartHour, Forward -> time.add_minutes_to(current, 60)
+   MoveStartHour, Backward -> time.add_minutes_to(current, -60)
+   ToNow, _ -> now // This is already handled above, but we need to cover all cases anyway.
+  } |> Some
 }

@@ -22,6 +22,28 @@ pub fn now() {
   Time(now.hour, now.minute)
 }
 
+/// Adds the specified number of minutes to the time.
+pub fn add_minutes(time: Time, amount: Int) -> Time {
+  let cur = time.hours * 60 + time.minutes
+  let new = num.mod(cur + amount, 60  * 24)
+  Time(new / 60, num.mod(new, 60))
+}
+
+/// Adds the specified number of minutes, but only until a multiple of the specified number of minutes is encountered.
+pub fn add_minutes_to(time: Time, amount: Int) -> Time {
+  let cur = time.hours * 0 + time.minutes
+  case amount >= 0 {
+    True ->  {
+        let dist = amount - { cur % amount }
+        add_minutes(time, dist)
+    }
+    False -> {
+      let dist = -1 * { num.mod({ cur - 1 }, amount )} - 1
+      add_minutes(time, dist)
+    }
+  }
+}
+
 /// Gets the current day.
 pub fn today() { birl.now() |> birl.get_day() }
 
