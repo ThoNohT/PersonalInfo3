@@ -26,3 +26,10 @@ pub fn decimalify(val: Int) -> Float {
   let mag = int.to_float(magnitude(val))
   float_val /. mag
 }
+
+/// A helper for modulo that does not return negative values.
+pub fn mod(val: Int, by: Int) -> Int {
+  let by = int.absolute_value(by)
+  { { val % by } + by } % by
+}
+

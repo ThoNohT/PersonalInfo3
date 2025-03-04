@@ -18,11 +18,10 @@ import model.{
   type InputState, InputState,
   type Model, Loading, Err, Loaded, type State, State,
   Gain, Use,
-  type Msg,
+  type Msg, NoOp,
   TimeInputChanged, HolidayInputChanged, TargetChanged, LunchChanged,
-  TimeInputKeyDown,
+  TimeInputKeyDown, ChangeDay,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
-  PrevDay, NextDay,
   type Validated, is_valid}
 
 fn day_item_card(selected_index: Option(Int), event: DayEvent) {
@@ -75,7 +74,7 @@ fn day_item_list(st: State) {
   let header =
     eh.div([ a.class("row") ],
     [ eh.button(
-      [ a.class("col-1 btn btn-primary"), uev.on_click_mod(PrevDay) ],
+      [ a.class("col-1 btn btn-primary"), uev.on_click_mod(fn(_) { ChangeDay(model.MoveDay, model.Backward) }) ],
       [ e.text("<<") ])
     , eh.h3([ a.class("col-10 text-center") ],
       [ e.text(day.weekday(st.current_state.date) |> birl.weekday_to_short_string <> " ")
@@ -86,7 +85,7 @@ fn day_item_list(st: State) {
         }
       ])
     , eh.button(
-      [ a.class("col-1 btn btn-primary"), uev.on_click_mod(NextDay), a.disabled(st.today == st.current_state.date) ],
+      [ a.class("col-1 btn btn-primary"), uev.on_click_mod(fn(_) { ChangeDay(model.MoveDay, model.Forward) }), a.disabled(st.today == st.current_state.date) ],
       [ e.text(">>") ])
     ])
 
@@ -149,8 +148,27 @@ fn input_area(is: InputState, ds: DayStatistics) {
   }
 
   let clock_keydown_handler = fn(tuple: #(uev.ModifierState, String)) -> #(Msg, Bool) {
-    // let key = tuple.1
-    #(TimeInputKeyDown(tuple.0), False)
+    case tuple.1, tuple.0.ctrl, tuple.0.shift {
+      "ArrowRight", True, False -> #(TimeInputKeyDown(model.MoveMinute, model.Forward), True)
+      "ArrowLeft", True, False -> #(TimeInputKeyDown(model.MoveMinute, model.Backward), True)
+
+      // Up = 15 minutes, Up + Ctrl = 1 hour. + Shift = to start.
+      "ArrowUp", False, False -> #(TimeInputKeyDown(model.MoveQuarter, model.Forward), True)
+      "ArrowDown", False, False -> #(TimeInputKeyDown(model.MoveQuarter, model.Backward), True)
+      "ArrowUp", True, False -> #(TimeInputKeyDown(model.MoveStartQuarter, model.Forward), True)
+      "ArrowDown", True, False -> #(TimeInputKeyDown(model.MoveStartQuarter, model.Backward), True)
+
+      "ArrowUp", False, True -> #(TimeInputKeyDown(model.MoveHour, model.Forward), True)
+      "ArrowDown", False, True -> #(TimeInputKeyDown(model.MoveHour, model.Backward), True)
+      "ArrowUp", True, True -> #(TimeInputKeyDown(model.MoveStartHour, model.Forward), True)
+      "ArrowDown", True, True -> #(TimeInputKeyDown(model.MoveStartHour, model.Backward), True)
+
+      "n", _, _ -> #(TimeInputKeyDown(model.ToNow, model.Backward), True) // Direction is not used here.
+
+      "Enter", _, _ -> #(AddClockEvent, True)
+
+      _, _, _ -> #(NoOp, False)
+    }
   }
 
   eh.div([ a.class("col-6") ],

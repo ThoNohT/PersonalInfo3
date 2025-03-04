@@ -19,9 +19,9 @@ import model.{
   type InputState, InputState,
   type Model, Loading, Loaded, Err,
   type State, State,
-  type Msg, LoadState, Tick, TimeInputChanged, HolidayInputChanged, TargetChanged, LunchChanged,
+  type Msg, LoadState, Tick, TimeInputChanged, TimeInputKeyDown, HolidayInputChanged, TargetChanged, LunchChanged,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
-  PrevDay, NextDay,
+  ChangeDay, Forward, Backward,
   validate, unvalidated}
 import view.{view}
 
@@ -146,8 +146,8 @@ fn update(model: Model, msg: Msg) {
           let current_state = DayState(..st.current_state, events:)
           ef.just(Loaded(State(..st, current_state:) |> model.update_history |> model.recalculate_statistics))
         }
-        PrevDay(_modifiers) -> {
-          let to_day = day.prev(st.current_state.date)
+        ChangeDay(_amount, dir) -> {
+          let to_day = case dir { Backward -> day.prev(st.current_state.date) Forward -> day.next(st.current_state.date) }
           // TODO: Modifiers step in bigger increments, but only so far as there is recorded history.
 
           let state = case list.find(st.history, fn(s: DayState) { s.date == to_day }) {
@@ -160,18 +160,11 @@ fn update(model: Model, msg: Msg) {
           )
           ef.just(Loaded(State(..state, input_state:)))
         }
-        NextDay(_modifiers) -> {
-          let to_day = day.next(st.current_state.date)
-          // TODO: Modifiers step in bigger increments, but only so far as there is recorded history.
-
-          let state = case list.find(st.history, fn(s: DayState) { s.date == to_day }) {
-            Ok(current_state) -> State(..st, current_state:) |> model.recalculate_statistics
-            Error(_) -> model.add_day_state(st, to_day) |> model.recalculate_statistics
-          }
-          let input_state = InputState(..state.input_state,
-            target_input: validate(duration.to_decimal_string(state.current_state.target, 2), duration.parse)
-          )
-          ef.just(Loaded(State(..state, input_state:)))
+        TimeInputKeyDown(amount, dir) -> {
+          use to_time <-
+            ef.then(model, model.calculate_target_time(st.input_state.clock_input.parsed, amount, dir, st.now))
+          let input_state = InputState(..st.input_state, clock_input: validate(time.to_string(to_time), time.parse))
+          ef.just(Loaded(State(..st, input_state:)))
         }
         _ -> ef.just(model)
       }
