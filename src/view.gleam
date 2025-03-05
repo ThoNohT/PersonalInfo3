@@ -72,10 +72,21 @@ fn day_item_list(st: State) {
     _, _ -> []
   }
 
+  let on_click_handler = fn(modifiers: uev.ModifierState, dir: model.MoveDirection) -> Msg {
+    let dist = case modifiers.shift, modifiers.ctrl {
+      False, False -> model.MoveDay
+      False, True -> model.MoveWeek
+      True, False -> model.MoveMonth
+      True, True -> model.MoveYear
+    }
+
+    ChangeDay(dist, dir)
+  }
+
   let header =
     eh.div([ a.class("row") ],
     [ eh.button(
-      [ a.class("col-1 btn btn-primary"), uev.on_click_mod(fn(_) { ChangeDay(model.MoveDay, model.Backward) }) ],
+      [ a.class("col-1 btn btn-primary"), uev.on_click_mod(on_click_handler(_, model.Backward)) ],
       [ e.text("<<") ])
     , eh.h3([ a.class("col-10 text-center") ],
       [ e.text(day.weekday(st.current_state.date) |> birl.weekday_to_short_string <> " ")
@@ -86,7 +97,7 @@ fn day_item_list(st: State) {
         }
       ])
     , eh.button(
-      [ a.class("col-1 btn btn-primary"), uev.on_click_mod(fn(_) { ChangeDay(model.MoveDay, model.Forward) }), a.disabled(st.today == st.current_state.date) ],
+      [ a.class("col-1 btn btn-primary"), uev.on_click_mod(on_click_handler(_, model.Forward)), a.disabled(st.today == st.current_state.date) ],
       [ e.text(">>") ])
     ])
 

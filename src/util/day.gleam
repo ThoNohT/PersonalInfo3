@@ -22,12 +22,26 @@ fn map(fun: fn(Time) -> Time, day: Day) -> Day {
 
 /// Returns the next day.
 pub fn next(day: Day) -> Day {
-  birl.add(_, duration.days(1)) |> map(day)
+  add_days(day, 1)
 }
 
 /// Returns the previous day.
 pub fn prev(day: Day) -> Day {
-  birl.subtract(_, duration.days(1)) |> map(day)
+  add_days(day, -1)
+}
+
+/// Adds the specified number of days.
+pub fn add_days(day: Day, amount: Int) -> Day {
+  birl.add(_, duration.days(amount)) |> map(day)
+}
+
+/// Ensures the specified day is not before min or after max.
+pub fn clamp(day: Day, min: Day, max: Day) -> Day {
+  case days_diff(day, min), days_diff(day, max) {
+    before, _ if before < 0 -> min
+    _, after if after > 0 -> max
+    _, _ -> day
+  }
 }
 
 /// Converts a Day to a string in the format yyyy-mm-dd.
@@ -68,7 +82,7 @@ pub fn compare(a: Day, b: Day) -> Order {
 pub fn weekday(day: Day) -> Weekday { day |> to_time_midnight |> birl.weekday }
 
 /// Converts a Weekday to an Int.
-fn weekday_to_int(weekday: Weekday) -> Int {
+pub fn weekday_to_int(weekday: Weekday) -> Int {
   case weekday {
     birl.Mon -> 0
     birl.Tue -> 1

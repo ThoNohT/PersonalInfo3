@@ -7,7 +7,6 @@ import lustre
 import lustre/effect
 import lustre_http as http
 
-import util/day
 import util/duration
 import util/effect as ef
 import util/time.{type Time}
@@ -23,7 +22,7 @@ import model.{
   TimeInputChanged, TimeInputKeyDown, HolidayInputChanged, HolidayInputKeyDown,
   TargetChanged, TargetKeyDown, LunchChanged,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
-  ChangeDay, Forward, Backward,
+  ChangeDay,
   validate, unvalidated}
 import view.{view}
 
@@ -148,9 +147,11 @@ fn update(model: Model, msg: Msg) {
           let current_state = DayState(..st.current_state, events:)
           ef.just(Loaded(State(..st, current_state:) |> model.update_history |> model.recalculate_statistics))
         }
-        ChangeDay(_amount, dir) -> {
-          let to_day = case dir { Backward -> day.prev(st.current_state.date) Forward -> day.next(st.current_state.date) }
-          // TODO: Modifiers step in bigger increments, but only so far as there is recorded history.
+        ChangeDay(amount, dir) -> {
+          let first_day =
+            st.history |> list.first |> option.from_result
+            |> option.map(fn(x) { x.date }) |> option.unwrap(st.today)
+          let to_day = model.move_date(st.current_state.date, amount, dir, first_day, st.today)
 
           let state = case list.find(st.history, fn(s: DayState) { s.date == to_day }) {
             Ok(current_state) -> State(..st, current_state:) |> model.recalculate_statistics
