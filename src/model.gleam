@@ -2,7 +2,7 @@ import gleam/list
 import gleam/option.{type Option, Some, None}
 import gleam/order.{Gt, Lt, Eq}
 
-import birl.{type Day}
+import birl.{type Day, Day}
 import lustre_http as http
 
 import util/prim
@@ -108,7 +108,63 @@ pub type State {
 }
 
 /// The different amounts that can be moved through the history.
-pub type DateMoveAmount { MoveDay MoveWeek MoveMonth MoveYear MoveMonthStart MoveYearStart ToToday }
+pub type DateMoveAmount { MoveDay MoveWeek MoveMonth MoveYear ToToday }
+
+/// Moves the day by the specified amount, but keeping it between the provided min and max(today) day.
+pub fn move_date(day: Day, amount: DateMoveAmount, direction: MoveDirection, min: Day, today: Day) -> Day {
+  // If we are at the min edge, we will always move by one bakward. Otherwise, always cap it between min and max.
+  use _ <- prim.check(day.prev(day), !{ direction == Backward && day == min })
+
+  let move_week = fn(d: Day, dir: MoveDirection) {
+    let weekday = day.weekday(d) |> day.weekday_to_int
+
+    case dir, weekday {
+      Backward, 0 -> day.add_days(d, -7)
+      Forward, 0 -> day.add_days(d, 7)
+      Backward, _ -> day.add_days(d, -1 * weekday)
+      Forward, _ -> day.add_days(d, 7 - weekday)
+    }
+  }
+
+  let move_month = fn(d: Day, dir: MoveDirection) -> Day {
+    case dir {
+      Forward -> {
+        let ym = case d.month + 1 {
+          m if m > 12 -> #(d.year + 1, 1)
+          m -> #(d.year, m)
+        }
+        Day(ym.0, ym.1, 1)
+      }
+
+      Backward if d.date > 1 -> Day(d.year, d.month, 1)
+      Backward -> {
+        let ym = case d.month - 1 {
+          m if m < 1 -> #(d.year - 1, 12)
+          m -> #(d.year, m)
+        }
+        Day(ym.0, ym.1, 1)
+      }
+    }
+  }
+
+  let move_year = fn(d: Day, dir: MoveDirection) -> Day {
+    case dir {
+      Backward if d.month > 1 || d.date > 1 -> Day(d.year, 1, 1)
+      Backward -> Day(d.year - 1, 1, 1)
+      Forward -> Day(d.year + 1, 1, 1)
+    }
+  }
+
+  case amount, direction {
+    MoveDay, Backward -> day.prev(day)
+    MoveDay, Forward -> day.next(day)
+    MoveWeek, _ -> move_week(day, direction)
+    MoveMonth, _ -> move_month(day, direction)
+    MoveYear, _ -> move_year(day, direction)
+    ToToday, _ -> today
+  } |> day.clamp(min, today)
+}
+
 
 /// The different amounts that can be moved through time/durations.
 pub type TimeMoveAmount { MoveMinute MoveQuarter MoveStartQuarter MoveHour MoveStartHour ToNow }
