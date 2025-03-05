@@ -1,4 +1,5 @@
 import gleam/list
+import gleam/string
 import gleam/option.{type Option, Some, None}
 
 import birl
@@ -89,7 +90,7 @@ fn day_item_list(st: State) {
       [ a.class("col-1 btn btn-primary"), uev.on_click_mod(on_click_handler(_, model.Backward)) ],
       [ e.text("<<") ])
     , eh.h3([ a.class("col-10 text-center") ],
-      [ e.text(day.weekday(st.current_state.date) |> birl.weekday_to_short_string <> " ")
+      [ e.text(day.weekday(st.current_state.date) |> birl.weekday_to_short_string |> string.slice(0, 2) <> " ")
       , e.text(day.to_string(st.current_state.date))
       , case day.to_relative_string(st.current_state.date, st.today) {
           Some(str) -> eh.span([], [eh.br([]), e.text(" (" <> str <> ")") ])
