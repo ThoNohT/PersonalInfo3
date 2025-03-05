@@ -7,6 +7,7 @@ import lustre/element/html as eh
 import lustre/event as ev
 import lustre/attribute as a
 
+import util/prim
 import util/event as uev
 import util/time
 import util/day
@@ -19,8 +20,8 @@ import model.{
   type Model, Loading, Err, Loaded, type State, State,
   Gain, Use,
   type Msg, NoOp,
-  TimeInputChanged, HolidayInputChanged, TargetChanged, LunchChanged,
-  TimeInputKeyDown, ChangeDay,
+  TimeInputChanged, HolidayInputChanged, TargetChanged, TargetKeyDown, LunchChanged,
+  TimeInputKeyDown, HolidayInputKeyDown, ChangeDay,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
   type Validated, is_valid}
 
@@ -93,7 +94,7 @@ fn day_item_list(st: State) {
     [ header
     , eh.hr([])
     , eh.div([ a.class("row") ],
-      [ text_input("target", "Target:", st.input_state.target_input, duration.to_unparsed_format_string(st.current_state.target), TargetChanged, None, duration.to_unparsed_format_string, False)
+      [ text_input("target", "Target:", st.input_state.target_input, duration.to_unparsed_format_string(st.current_state.target), TargetChanged, Some(input_keydown_handler(_, TargetKeyDown, None, None)), duration.to_unparsed_format_string, False)
       , check_input("lunch", "Lunch", st.current_state.lunch, LunchChanged)
       , eh.div([ a.class("col-3 p-2") ], [ eh.b([], [ e.text("ETA: ") ]), e.text(eta_text) , ..end_text ])
       ])
@@ -132,6 +133,36 @@ fn check_input(name, label, value, input_message) {
   ])
 }
 
+fn input_keydown_handler(
+  tuple: #(uev.ModifierState, String),
+  to_move_msg: fn(model.TimeMoveAmount, model.MoveDirection) -> Msg,
+  add_msg_1: Option(Msg),
+  add_msg_2: Option(Msg)) -> #(Msg, Bool) {
+    use _ <- prim.check(#(NoOp, False), !tuple.0.alt)
+  case tuple.1, tuple.0.ctrl, tuple.0.shift {
+    "ArrowRight", True, False -> #(to_move_msg(model.MoveMinute, model.Forward), True)
+    "ArrowLeft", True, False -> #(to_move_msg(model.MoveMinute, model.Backward), True)
+
+    // Up = 15 minutes, Up + Ctrl = 1 hour. + Shift = to start.
+    "ArrowUp", False, False -> #(to_move_msg(model.MoveQuarter, model.Forward), True)
+    "ArrowDown", False, False -> #(to_move_msg(model.MoveQuarter, model.Backward), True)
+    "ArrowUp", True, False -> #(to_move_msg(model.MoveStartQuarter, model.Forward), True)
+    "ArrowDown", True, False -> #(to_move_msg(model.MoveStartQuarter, model.Backward), True)
+
+    "ArrowUp", False, True -> #(to_move_msg(model.MoveHour, model.Forward), True)
+    "ArrowDown", False, True -> #(to_move_msg(model.MoveHour, model.Backward), True)
+    "ArrowUp", True, True -> #(to_move_msg(model.MoveStartHour, model.Forward), True)
+    "ArrowDown", True, True -> #(to_move_msg(model.MoveStartHour, model.Backward), True)
+
+    "n", False, False -> #(to_move_msg(model.ToNow, model.Backward), True) // Direction is not used here.
+
+    "Enter", False, False -> add_msg_1 |> option.map(fn(m) { #(m, True) }) |> option.unwrap(#(NoOp,False))
+    "Enter", True, False -> add_msg_2 |> option.map(fn(m) { #(m, True) }) |> option.unwrap(#(NoOp,False))
+
+    _, _, _ -> #(NoOp, False)
+  }
+}
+
 fn input_area(is: InputState, ds: DayStatistics) {
   let btn = fn(msg, txt, enabled) {
     eh.button(
@@ -147,42 +178,18 @@ fn input_area(is: InputState, ds: DayStatistics) {
     False -> "Complete"
   }
 
-  let clock_keydown_handler = fn(tuple: #(uev.ModifierState, String)) -> #(Msg, Bool) {
-    case tuple.1, tuple.0.ctrl, tuple.0.shift {
-      "ArrowRight", True, False -> #(TimeInputKeyDown(model.MoveMinute, model.Forward), True)
-      "ArrowLeft", True, False -> #(TimeInputKeyDown(model.MoveMinute, model.Backward), True)
-
-      // Up = 15 minutes, Up + Ctrl = 1 hour. + Shift = to start.
-      "ArrowUp", False, False -> #(TimeInputKeyDown(model.MoveQuarter, model.Forward), True)
-      "ArrowDown", False, False -> #(TimeInputKeyDown(model.MoveQuarter, model.Backward), True)
-      "ArrowUp", True, False -> #(TimeInputKeyDown(model.MoveStartQuarter, model.Forward), True)
-      "ArrowDown", True, False -> #(TimeInputKeyDown(model.MoveStartQuarter, model.Backward), True)
-
-      "ArrowUp", False, True -> #(TimeInputKeyDown(model.MoveHour, model.Forward), True)
-      "ArrowDown", False, True -> #(TimeInputKeyDown(model.MoveHour, model.Backward), True)
-      "ArrowUp", True, True -> #(TimeInputKeyDown(model.MoveStartHour, model.Forward), True)
-      "ArrowDown", True, True -> #(TimeInputKeyDown(model.MoveStartHour, model.Backward), True)
-
-      "n", _, _ -> #(TimeInputKeyDown(model.ToNow, model.Backward), True) // Direction is not used here.
-
-      "Enter", _, _ -> #(AddClockEvent, True)
-
-      _, _, _ -> #(NoOp, False)
-    }
-  }
-
   eh.div([ a.class("col-6") ],
   [ eh.div([ a.class("") ],
     [ eh.h3([ a.class("text-center") ], [ e.text("Input") ] )
     , eh.hr([])
     , eh.div([ a.class("row") ],
-      [ text_input("clock", "Clock:", is.clock_input, "Invalid time.", TimeInputChanged, Some(clock_keydown_handler), time.to_string, True)
+      [ text_input("clock", "Clock:", is.clock_input, "Invalid time.", TimeInputChanged, Some(input_keydown_handler(_, TimeInputKeyDown, Some(AddClockEvent), None)), time.to_string, True)
       , btn(AddClockEvent, "Add", is_valid(is.clock_input))
       ])
     , eh.div([ a.class("row") ],
-      [ text_input("holiday", "Holiday:", is.holiday_input, "Invalid duration.", HolidayInputChanged, None, duration.to_unparsed_format_string, False)
-      , btn(AddHolidayBooking(Gain), "Gain", is_valid(is.holiday_input))
+      [ text_input("holiday", "Holiday:", is.holiday_input, "Invalid duration.", HolidayInputChanged, Some(input_keydown_handler(_, HolidayInputKeyDown, Some(AddHolidayBooking(model.Use)), Some(AddHolidayBooking(model.Gain)))), duration.to_unparsed_format_string, False)
       , btn(AddHolidayBooking(Use), "Use", is_valid(is.holiday_input))
+      , btn(AddHolidayBooking(Gain), "Gain", is_valid(is.holiday_input))
       ])
 
     // Statistics

@@ -122,6 +122,32 @@ pub fn is_positive(duration: Duration) -> Bool {
   duration.sign == Pos && { duration.hours > 0 || duration.minutes > 0 }
 }
 
+
+/// Adds the specified number of minutes to the duration.
+pub fn add_minutes(duration: Duration, amount: Int, max: Int) -> Duration {
+  use _ <- prim.check(duration, duration.sign == Pos) // We only allow modifying positive durations.
+
+  let cur = duration.hours * 60 + duration.minutes
+  let new = num.mod(cur + amount, 60  * max)
+  Duration(new / 60, num.mod(new, 60), duration.sign, duration.parsed_from)
+}
+
+/// Adds the specified number of minutes, but only until a multiple of the specified number of minutes is encountered.
+pub fn add_minutes_to(duration: Duration, amount: Int, max: Int) -> Duration {
+  use _ <- prim.check(duration, duration.sign == Pos) // We only allow modifying positive durations.
+  let cur = duration.hours * 0 + duration.minutes
+  case amount >= 0 {
+    True ->  {
+        let dist = amount - { cur % amount }
+        add_minutes(duration, dist, max)
+    }
+    False -> {
+      let dist = -1 * { num.mod({ cur - 1 }, amount )} - 1
+      add_minutes(duration, dist, max)
+    }
+  }
+}
+
 /// Parses a duration from a string.
 ///
 /// Valid representations are:
