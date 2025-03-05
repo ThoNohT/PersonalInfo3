@@ -123,7 +123,9 @@ pub type Msg {
   TimeInputChanged(new_time: String)
   TimeInputKeyDown(amount: TimeMoveAmount, dir: MoveDirection)
   HolidayInputChanged(new_duration: String)
+  HolidayInputKeyDown(amount: TimeMoveAmount, dir: MoveDirection)
   TargetChanged(new_target: String)
+  TargetKeyDown(amount: TimeMoveAmount, dir: MoveDirection)
   LunchChanged(new_lunch: Bool)
   SelectListItem(index: Int)
   DeleteListItem(index: Int)
@@ -287,5 +289,24 @@ pub fn calculate_target_time(current: Option(Time), amount: TimeMoveAmount, dir:
    MoveStartHour, Forward -> time.add_minutes_to(current, 60)
    MoveStartHour, Backward -> time.add_minutes_to(current, -60)
    ToNow, _ -> now // This is already handled above, but we need to cover all cases anyway.
+  } |> Some
+}
+
+/// Calculates the new duration based on a move amount and direction, and the current duration input.
+pub fn calculate_target_duration(current: Option(Duration), amount: TimeMoveAmount, dir: MoveDirection, max: Int) -> Option(Duration) {
+  use current <- option.then(current)
+
+  case amount, dir {
+   MoveMinute, Forward -> duration.add_minutes(current, 1, max)
+   MoveMinute, Backward -> duration.add_minutes(current, -1, max)
+   MoveQuarter, Forward -> duration.add_minutes(current, 15, max)
+   MoveQuarter, Backward -> duration.add_minutes(current, -15, max)
+   MoveStartQuarter, Forward -> duration.add_minutes_to(current, 15, max)
+   MoveStartQuarter, Backward -> duration.add_minutes_to(current, -15, max)
+   MoveHour, Forward -> duration.add_minutes(current, 60, max)
+   MoveHour, Backward -> duration.add_minutes(current, -60, max)
+   MoveStartHour, Forward -> duration.add_minutes_to(current, 60, max)
+   MoveStartHour, Backward -> duration.add_minutes_to(current, -60, max)
+   ToNow, _ -> current // This should never happen, it doesn't do anything anyway.
   } |> Some
 }

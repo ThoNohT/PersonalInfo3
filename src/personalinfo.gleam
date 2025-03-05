@@ -19,7 +19,9 @@ import model.{
   type InputState, InputState,
   type Model, Loading, Loaded, Err,
   type State, State,
-  type Msg, LoadState, Tick, TimeInputChanged, TimeInputKeyDown, HolidayInputChanged, TargetChanged, LunchChanged,
+  type Msg, LoadState, Tick,
+  TimeInputChanged, TimeInputKeyDown, HolidayInputChanged, HolidayInputKeyDown,
+  TargetChanged, TargetKeyDown, LunchChanged,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
   ChangeDay, Forward, Backward,
   validate, unvalidated}
@@ -164,6 +166,18 @@ fn update(model: Model, msg: Msg) {
           use to_time <-
             ef.then(model, model.calculate_target_time(st.input_state.clock_input.parsed, amount, dir, st.now))
           let input_state = InputState(..st.input_state, clock_input: validate(time.to_string(to_time), time.parse))
+          ef.just(Loaded(State(..st, input_state:)))
+        }
+        HolidayInputKeyDown(amount, dir) -> {
+          use to_duration <-
+            ef.then(model, model.calculate_target_duration(st.input_state.holiday_input.parsed, amount, dir, 1000))
+          let input_state = InputState(..st.input_state, holiday_input: validate(duration.to_time_string(to_duration), duration.parse))
+          ef.just(Loaded(State(..st, input_state:)))
+        }
+        TargetKeyDown(amount, dir) -> {
+          use to_duration <-
+            ef.then(model, model.calculate_target_duration(st.input_state.target_input.parsed, amount, dir, 24))
+          let input_state = InputState(..st.input_state, target_input: validate(duration.to_time_string(to_duration), duration.parse))
           ef.just(Loaded(State(..st, input_state:)))
         }
         _ -> ef.just(model)
