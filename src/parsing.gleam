@@ -146,6 +146,4 @@ pub fn parse_state_input(input: String) -> Option(StateInput) {
     |> string.replace("\r", "") |> string.split("\n")
     // Parse input (history will be reversed).
     |> list.fold(Some(StateInput(duration.zero(), 0.0, [])), parse_line)
-    // Reverse history.
-    |> option.map(fn(st) { StateInput(..st, history: list.reverse(st.history)) })
 }
