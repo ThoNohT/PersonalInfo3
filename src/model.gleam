@@ -88,10 +88,18 @@ pub type InputState {
   )
 }
 
+pub type SettingsState {
+  SettingsState(
+    week_target_input: Validated(Duration),
+    travel_distance_input: Validated(Float),
+  )
+}
+
 pub type Model {
   Loading
   Err(String)
   Loaded(state: State)
+  Settings(state: State, settings: SettingsState)
 }
 
 pub type State {
@@ -165,6 +173,8 @@ pub fn move_date(day: Day, amount: DateMoveAmount, direction: MoveDirection, min
   } |> day.clamp(min, today)
 }
 
+/// The differnt amounts that can be moved in floats.
+pub type FloatMoveAmount { Ones Tens Tenths }
 
 /// The different amounts that can be moved through time/durations.
 pub type TimeMoveAmount { MoveMinute MoveQuarter MoveStartQuarter MoveHour MoveStartHour ToNow }
@@ -189,6 +199,14 @@ pub type Msg {
   AddClockEvent
   AddHolidayBooking(kind: HolidayBookingKind)
   ChangeDay(amount: DateMoveAmount, dir: MoveDirection)
+
+  OpenSettings
+  CancelSettings
+  ApplySettings
+  WeekTargetChanged(new_duration: String)
+  WeekTargetKeyDown(amount: TimeMoveAmount, dir: MoveDirection)
+  TravelDistanceChanged(new_distance: String)
+  TravelDistanceKeyDown(amount: FloatMoveAmount, dir: MoveDirection)
 }
 
 pub fn recalculate_events(events: List(DayEvent)) -> List(DayEvent) {

@@ -1,6 +1,7 @@
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
+import gleam/float
 
 import birl.{type Day}
 import lustre
@@ -16,13 +17,14 @@ import model.{
   ClockEvent, HolidayBooking,
   type DayState, DayState,
   type InputState, InputState,
-  type Model, Loading, Loaded, Err,
-  type State, State,
+  type Model, Loading, Loaded, Err, Settings,
+  type State, State, SettingsState,
   type Msg, LoadState, Tick,
   TimeInputChanged, TimeInputKeyDown, HolidayInputChanged, HolidayInputKeyDown,
-  TargetChanged, TargetKeyDown, LunchChanged,
+  TargetChanged, TargetKeyDown, LunchChanged, ChangeDay,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
-  ChangeDay,
+  OpenSettings, CancelSettings, ApplySettings,
+  WeekTargetChanged, TravelDistanceChanged, WeekTargetKeyDown, TravelDistanceKeyDown,
   validate, unvalidated}
 import view.{view}
 
@@ -35,6 +37,28 @@ pub fn main() {
 
 fn init(_) {
   #(Loading, http.get("http://localhost:5500/state.txt", http.expect_text(LoadState)))
+}
+
+fn load_state(input: String, today: Day, now: Time) -> State {
+  // TODO: Proper handling of failing to parse.
+  let assert Some(state_input) = parsing.parse_state_input(input)
+
+  // Fixed values:
+  let input_state = InputState(unvalidated(), unvalidated(), unvalidated())
+  let selected_event_index = None
+  let stats = model.stats_zero()
+
+  // Make some current state, it will be replaced by add_day_state.
+  let current_state = DayState(date: today, target: duration.zero(), lunch: False, events: [])
+  let state = State(
+    today:, now:, current_state:, stats:, selected_event_index:, input_state:,
+    history: state_input.history |> list.map(fn(d) { DayState(..d, events: d.events |> model.recalculate_events) }),
+    week_target: state_input.week_target,
+    travel_distance: state_input.travel_distance) |> model.add_day_state(today) |> model.recalculate_statistics
+
+  let input_state = InputState(..input_state,
+    target_input: validate(duration.to_decimal_string(state.current_state.target, 2), duration.parse))
+  State(..state, input_state:)
 }
 
 fn update(model: Model, msg: Msg) {
@@ -181,30 +205,54 @@ fn update(model: Model, msg: Msg) {
           let input_state = InputState(..st.input_state, target_input: validate(duration.to_time_string(to_duration), duration.parse))
           ef.just(Loaded(State(..st, input_state:)))
         }
+        OpenSettings -> {
+          let week_target_input = model.validate(duration.to_time_string(st.week_target), duration.parse)
+          let travel_distance_input = model.validate(float.to_string(st.travel_distance), fn(f) { float.parse(f) |> option.from_result })
+          ef.just(Settings(state: st, settings: SettingsState(week_target_input:, travel_distance_input:)))
+        }
+        _ -> ef.just(model)
+      }
+    }
+    Settings(st, ss) -> {
+      case msg {
+        CancelSettings -> ef.just(Loaded(st))
+        ApplySettings -> {
+          let week_target = ss.week_target_input.parsed |> option.unwrap(st.week_target)
+          let travel_distance = ss.travel_distance_input.parsed |> option.unwrap(st.travel_distance)
+          ef.just(Loaded(State(..st, week_target:, travel_distance:) |> model.recalculate_statistics))
+        }
+        WeekTargetChanged(new_target) -> {
+          let week_target_input = validate(string.slice(new_target, 0, 6), duration.parse)
+          ef.just(Settings(st, settings: SettingsState(..ss, week_target_input:)))
+        }
+        WeekTargetKeyDown(amount, dir) -> {
+          use to_duration <-
+            ef.then(model, model.calculate_target_duration(ss.week_target_input.parsed, amount, dir, 24 * 7))
+          let settings = SettingsState(..ss, week_target_input: validate(duration.to_time_string(to_duration), duration.parse))
+          ef.just(Settings(st, settings:))
+        }
+        TravelDistanceChanged(new_distance) -> {
+          // TODO: Better parsing for floats.
+          let travel_distance_input = validate(string.slice(new_distance, 0, 4), fn(x) { float.parse(x) |> option.from_result })
+          ef.just(Settings(st, settings: SettingsState(..ss, travel_distance_input:)))
+        }
+        TravelDistanceKeyDown(amount, dir) -> {
+          use current_distance <- ef.then(model, ss.travel_distance_input.parsed)
+
+          let new_distance = case amount, dir {
+            model.Ones, model.Forward -> current_distance +. 1.0
+            model.Ones, model.Backward -> current_distance -. 1.0
+            model.Tens, model.Forward -> current_distance +. 10.0
+            model.Tens, model.Backward -> current_distance -. 10.0
+            model.Tenths, model.Forward -> current_distance +. 0.1
+            model.Tenths, model.Backward -> current_distance -. 0.1
+          }
+          // TODO: Better parsing for floats.
+          ef.just(Settings(st, settings: SettingsState(..ss, travel_distance_input: validate(float.to_string(new_distance), fn(x) { float.parse(x) |> option.from_result }))))
+        }
         _ -> ef.just(model)
       }
     }
   }
 }
 
-fn load_state(input: String, today: Day, now: Time) -> State {
-  // TODO: Proper handling of failing to parse.
-  let assert Some(state_input) = parsing.parse_state_input(input)
-
-  // Fixed values:
-  let input_state = InputState(unvalidated(), unvalidated(), unvalidated())
-  let selected_event_index = None
-  let stats = model.stats_zero()
-
-  // Make some current state, it will be replaced by add_day_state.
-  let current_state = DayState(date: today, target: duration.zero(), lunch: False, events: [])
-  let state = State(
-    today:, now:, current_state:, stats:, selected_event_index:, input_state:,
-    history: state_input.history |> list.map(fn(d) { DayState(..d, events: d.events |> model.recalculate_events) }),
-    week_target: state_input.week_target,
-    travel_distance: state_input.travel_distance) |> model.add_day_state(today) |> model.recalculate_statistics
-
-  let input_state = InputState(..input_state,
-    target_input: validate(duration.to_decimal_string(state.current_state.target, 2), duration.parse))
-  State(..state, input_state:)
-}

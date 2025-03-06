@@ -1,4 +1,5 @@
 import gleam/list
+import gleam/float
 import gleam/string
 import gleam/option.{type Option, Some, None}
 
@@ -18,12 +19,15 @@ import model.{
   type DayEvent, ClockEvent, HolidayBooking,
   type DayStatistics,
   type InputState, InputState,
-  type Model, Loading, Err, Loaded, type State, State,
+  type Model, Loading, Err, Loaded, type State, State, Settings,
+  type SettingsState, SettingsState,
   Gain, Use,
   type Msg, NoOp,
   TimeInputChanged, HolidayInputChanged, TargetChanged, TargetKeyDown, LunchChanged,
   TimeInputKeyDown, HolidayInputKeyDown, ChangeDay,
   SelectListItem, DeleteListItem, ToggleHome, AddClockEvent, AddHolidayBooking,
+  OpenSettings, CancelSettings, ApplySettings, 
+  WeekTargetChanged, WeekTargetKeyDown, TravelDistanceChanged, TravelDistanceKeyDown,
   type Validated, is_valid}
 
 fn day_item_card(selected_index: Option(Int), event: DayEvent) {
@@ -175,6 +179,26 @@ fn input_keydown_handler(
   }
 }
 
+fn input_keydown_handler_float(
+  tuple: #(uev.ModifierState, String),
+  to_move_msg: fn(model.FloatMoveAmount, model.MoveDirection) -> Msg,
+  add_msg: Option(Msg)) -> #(Msg, Bool) {
+    use _ <- prim.check(#(NoOp, False), !tuple.0.alt)
+  case tuple.1, tuple.0.ctrl, tuple.0.shift {
+    "ArrowUp", False, False -> #(to_move_msg(model.Ones, model.Forward), True)
+    "ArrowDown", False, False -> #(to_move_msg(model.Ones, model.Backward), True)
+    "ArrowUp", True, False -> #(to_move_msg(model.Tens, model.Forward), True)
+    "ArrowDown", True, False -> #(to_move_msg(model.Tens, model.Backward), True)
+
+    "ArrowUp", _, True -> #(to_move_msg(model.Tenths, model.Forward), True)
+    "ArrowDown", _, True -> #(to_move_msg(model.Tenths, model.Backward), True)
+
+    "Enter", _, False -> add_msg |> option.map(fn(m) { #(m, True) }) |> option.unwrap(#(NoOp,False))
+
+    _, _, _ -> #(NoOp, False)
+  }
+}
+
 fn input_area(is: InputState, ds: DayStatistics) {
   let btn = fn(msg, txt, enabled) {
     eh.button(
@@ -190,9 +214,17 @@ fn input_area(is: InputState, ds: DayStatistics) {
     False -> "Complete"
   }
 
+  let header = eh.div(
+    [ a.class("row") ],
+    [eh.button(
+      [ a.class("col-2 btn btn-primary m-1"), ev.on_click(OpenSettings) ],
+      [ e.text("Settings") ])
+    , eh.h3([ a.class("col-9 text-center") ], [ e.text("Input") ] )
+    ])
+
   eh.div([ a.class("col-6") ],
   [ eh.div([ a.class("") ],
-    [ eh.h3([ a.class("text-center") ], [ e.text("Input") ] )
+    [ header
     , eh.hr([])
     , eh.div([ a.class("row") ],
       [ text_input("clock", "Clock:", is.clock_input, "Invalid time.", TimeInputChanged, Some(input_keydown_handler(_, TimeInputKeyDown, Some(AddClockEvent), None)), time.to_string, True)
@@ -220,6 +252,15 @@ fn input_area(is: InputState, ds: DayStatistics) {
   ])
 }
 
+fn settings_area(st: State, ss: SettingsState) {
+  [ eh.h3([ a.class("col-9 text-center") ], [ e.text("Settings") ] )
+  , text_input("weektarget", "Week target:", ss.week_target_input, duration.to_unparsed_format_string(st.week_target), WeekTargetChanged, Some(input_keydown_handler(_, WeekTargetKeyDown, Some(ApplySettings), None)), duration.to_unparsed_format_string, True)
+  , text_input("traveldistance", "Travel distance:", ss.travel_distance_input, float.to_string(st.travel_distance), TravelDistanceChanged, Some(input_keydown_handler_float(_, TravelDistanceKeyDown, Some(ApplySettings))), float.to_string, False)
+  , eh.button([ a.class("btn btn-outline-secondary btn-sm me-1"), ev.on_click(CancelSettings) ], [ e.text("Cancel") ])
+  , eh.button([ a.class("btn btn-outline-primary btn-sm me-1"), ev.on_click(ApplySettings) ], [ e.text("Apply") ])
+  ]
+}
+
 pub fn view(model: Model) {
   case model {
     Loading -> eh.div([], [ e.text("Loading...") ])
@@ -229,6 +270,10 @@ pub fn view(model: Model) {
         [ day_item_list(state)
         , input_area(state.input_state, state.stats)
         ])
+    }
+    Settings(st, ss) -> {
+      eh.div([ a.class("container col mx-auto") ],
+        settings_area(st, ss))
     }
   }
 }
