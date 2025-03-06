@@ -1,6 +1,6 @@
 import gleam/int
 import gleam/list
-import gleam/option.{type Option, None, Some}
+import gleam/option.{type Option, Some}
 import gleam/string
 
 import birl.{type Day, Day}
@@ -27,7 +27,7 @@ fn parse_pos_int() -> Parser(Int) {
 
 /// Parses a Duration, where the last 2 digits are the minutes, and everything before the hours.
 fn parse_duration() -> Parser(Duration) {
-  parse_pos_int() |> p.map(fn(nr) { Duration(nr / 100, nr % 100, Pos, None) })
+  parse_pos_int() |> p.map(fn(nr) { Duration(nr / 100, nr % 100, Pos, Some(duration.DecimalFormat)) })
 }
 
 /// Parses a Float, where the decimal separator is a ".".
