@@ -35,7 +35,7 @@ fn parse_float() -> Parser(Float) {
   use int_part <- p.then(parse_pos_int() |> p.map(int.to_float))
 
   let decimal_parser = {
-    use _ <- p.then(p.char("."))
+    use <- p.do(p.char("."))
     use dec_part <- p.then(parse_pos_int() |> p.map(numbers.decimalify))
     p.success(int_part +. dec_part)
   }
@@ -106,7 +106,7 @@ fn parse_day_state() -> Parser(DayState) {
 }
 
 fn parse_line(acc: Option(StateInput), line: String) -> Option(StateInput) {
-  use _ <- prim.check(acc, !{string.is_empty(line)}) // Skip empty lines.
+  use <- prim.check(acc, !{string.is_empty(line)}) // Skip empty lines.
   use si <- option.then(acc)
 
   let parser = {
@@ -116,22 +116,22 @@ fn parse_line(acc: Option(StateInput), line: String) -> Option(StateInput) {
       // Try to parse the week target.
       "W" -> {
         use dur <- p.then(parse_duration())
-        use _ <- p.then(p.end())
+        use <- p.do(p.end())
         p.success(StateInput(..si, week_target: dur))
       }
 
       // Try to parse the travel distance.
       "T" -> {
         use d <- p.then(parse_float())
-        use _ <- p.then(p.end())
+        use <- p.do(p.end())
         p.success(StateInput(..si, travel_distance: d))
       }
 
       // Otherwise try to parse a day state.
       _ -> {
-        use _ <- p.restore(checkpoint)
+        use <- p.restore(checkpoint)
         use st <- p.then(parse_day_state())
-        use _ <- p.then(p.end())
+        use <- p.do(p.end())
         p.success(StateInput(..si, history: [ st, ..si.history ]))
       }
     }

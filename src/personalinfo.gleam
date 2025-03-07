@@ -94,7 +94,7 @@ fn update(model: Model, msg: Msg) {
           let now = time.now()
 
           // Only update if the time changed to the precision we observe it (minutes).
-          use _ <- check(now != st.now)
+          use <- check(now != st.now)
           ef.just(Loaded(State(..st, today:, now:) |> model.update_history |> model.recalculate_statistics))
         }
         TimeInputChanged(new_time) -> {
@@ -156,7 +156,7 @@ fn update(model: Model, msg: Msg) {
         }
         AddClockEvent -> {
           use time <- then(st.input_state.clock_input.parsed)
-          use _ <- check(!model.daystate_has_clock_event_at(st.current_state, time))
+          use <- check(!model.daystate_has_clock_event_at(st.current_state, time))
 
           let new_event = ClockEvent(list.length(st.current_state.events), time, Office, In)
           let events = [ new_event, ..st.current_state.events ] |> model.recalculate_events
