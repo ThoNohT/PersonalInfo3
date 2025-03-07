@@ -73,8 +73,8 @@ pub fn to_relative_string(day: Day, today: Day) -> Option(String) {
 
 /// Compares two Days.
 pub fn compare(a: Day, b: Day) -> Order {
-  use _ <- prim.compare_try(int.compare(a.year, b.year))
-  use _ <- prim.compare_try(int.compare(a.month, b.month))
+  use <- prim.compare_try(int.compare(a.year, b.year))
+  use <- prim.compare_try(int.compare(a.month, b.month))
   int.compare(a.date, b.date)
 }
 

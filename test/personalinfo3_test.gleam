@@ -72,7 +72,7 @@ pub fn parser_test() {
     use ch1 <- p.then(p.pchar())
     use ch2 <- p.then(p.pchar())
 
-    use _ <- p.then(p.end())
+    use <- p.do(p.end())
 
     p.success(ch1 <> ch2)
   }

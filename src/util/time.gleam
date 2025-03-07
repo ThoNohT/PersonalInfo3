@@ -56,7 +56,7 @@ pub fn to_string(time: Time) -> String {
 
 /// Compares two Time values.
 pub fn compare(a: Time, b: Time) -> Order {
-  use _ <- prim.compare_try(int.compare(a.hours, b.hours))
+  use <- prim.compare_try(int.compare(a.hours, b.hours))
   int.compare(a.minutes, b.minutes)
 }
 
@@ -64,8 +64,8 @@ pub fn parse_split_time(hour: String, minute: String, limit_hours: Bool) {
   use int_hr <- option.then(num.parse_pos_int(hour))
   use int_min <- option.then(num.parse_pos_int(minute))
 
-  use _ <- prim.check(None, int_hr < 24 || !limit_hours)
-  use _ <- prim.check(None, int_min < 60)
+  use <- prim.check(None, int_hr < 24 || !limit_hours)
+  use <- prim.check(None, int_min < 60)
 
   Time(int_hr, int_min) |> Some
 }

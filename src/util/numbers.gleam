@@ -8,12 +8,12 @@ pub type Sign { Pos Neg }
 /// Parses a positive int.
 pub fn parse_pos_int(str) -> Option(Int) {
     use parsed <- option.then(int.base_parse(str, 10) |> option.from_result)
-    use _ <- prim.check(None, parsed >= 0)
+    use <- prim.check(None, parsed >= 0)
     Some(parsed)
 }
 
 fn magnitude_go(acc: Int, val: Int) {
-  use _ <- prim.check(acc, val > 0)
+  use <- prim.check(acc, val > 0)
   magnitude_go(acc * 10, val / 10)
 }
 

@@ -10,18 +10,15 @@ pub fn then(default: b, option: Option(a), apply fun: fn(a) -> b) -> b {
 }
 
 /// Like then, but checks a boolean. The resulting value is Nil.
-pub fn check(default: a, value: Bool, apply fun: fn(Nil) -> a) -> a {
+pub fn check(default: a, value: Bool, apply fun: fn() -> a) -> a {
   case value {
     False -> default
-    True -> fun(Nil)
+    True -> fun()
   }
 }
 
 /// A way to short-circuit order checking. If the order is Eq, more comparisons can be done. Otherwise, the provided
 /// order is returned.
-pub fn compare_try(order: Order, apply fun: fn(Nil) -> Order) -> Order {
-  case order {
-    Eq -> fun(Nil)
-    _ -> order
-  }
+pub fn compare_try(order: Order, apply fun: fn() -> Order) -> Order {
+  case order { Eq -> fun() _ -> order }
 }

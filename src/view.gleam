@@ -154,7 +154,7 @@ fn input_keydown_handler(
   to_move_msg: fn(model.TimeMoveAmount, model.MoveDirection) -> Msg,
   add_msg_1: Option(Msg),
   add_msg_2: Option(Msg)) -> #(Msg, Bool) {
-    use _ <- prim.check(#(NoOp, False), !tuple.0.alt)
+    use <- prim.check(#(NoOp, False), !tuple.0.alt)
   case tuple.1, tuple.0.ctrl, tuple.0.shift {
     "ArrowRight", True, False -> #(to_move_msg(model.MoveMinute, model.Forward), True)
     "ArrowLeft", True, False -> #(to_move_msg(model.MoveMinute, model.Backward), True)
@@ -183,7 +183,7 @@ fn input_keydown_handler_float(
   tuple: #(uev.ModifierState, String),
   to_move_msg: fn(model.FloatMoveAmount, model.MoveDirection) -> Msg,
   add_msg: Option(Msg)) -> #(Msg, Bool) {
-    use _ <- prim.check(#(NoOp, False), !tuple.0.alt)
+    use <- prim.check(#(NoOp, False), !tuple.0.alt)
   case tuple.1, tuple.0.ctrl, tuple.0.shift {
     "ArrowUp", False, False -> #(to_move_msg(model.Ones, model.Forward), True)
     "ArrowDown", False, False -> #(to_move_msg(model.Ones, model.Backward), True)

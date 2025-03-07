@@ -121,7 +121,7 @@ pub type DateMoveAmount { MoveDay MoveWeek MoveMonth MoveYear ToToday }
 /// Moves the day by the specified amount, but keeping it between the provided min and max(today) day.
 pub fn move_date(day: Day, amount: DateMoveAmount, direction: MoveDirection, min: Day, today: Day) -> Day {
   // If we are at the min edge, we will always move by one bakward. Otherwise, always cap it between min and max.
-  use _ <- prim.check(day.prev(day), !{ direction == Backward && day == min })
+  use <- prim.check(day.prev(day), !{ direction == Backward && day == min })
 
   let move_week = fn(d: Day, dir: MoveDirection) {
     let weekday = day.weekday(d) |> day.weekday_to_int
@@ -272,16 +272,16 @@ pub fn recalculate_statistics(state: State) -> State {
         #(DayStatistics(..acc.0, remaining_holiday: duration.subtract(acc.0.remaining_holiday, dur)), acc.1)
 
       ClockEvent(_, time, loc, In) -> {
-        use _ <- prim.check(acc, this_week)
+        use <- prim.check(acc, this_week)
         #(acc.0, Some(#(loc, time)))
       }
 
       ClockEvent(_, time, _, Out) -> {
         // Location can be ignored here. We will use the location of the clock-in event.
-        use _ <- prim.check(acc, this_week)
+        use <- prim.check(acc, this_week)
         let assert Some(state) = acc.1
         let acc = #(add_week(acc.0, duration.between(from: state.1, to: time)), acc.1)
-        use _ <- prim.check(acc, curr_day)
+        use <- prim.check(acc, curr_day)
         #(add_hours(acc.0, state.0, duration.between(from: state.1, to: time)), None)
       }
     }
@@ -348,7 +348,7 @@ pub fn add_day_state(state: State, day: Day) -> State {
 
 /// Calculates the new time based on a move amount and direction, and the current time input.
 pub fn calculate_target_time(current: Option(Time), amount: TimeMoveAmount, dir: MoveDirection, now: Time) -> Option(Time) {
-  use _ <- prim.check(Some(now), amount != ToNow)
+  use <- prim.check(Some(now), amount != ToNow)
   use current <- option.then(current)
 
   case amount, dir {

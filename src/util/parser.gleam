@@ -63,6 +63,17 @@ pub fn then(p: Parser(a), then: fn(a) -> Parser(b)) -> Parser(b) {
   }
 }
 
+/// Combines two parser by running the second parser after the first one, ignoring the result of the first one.
+/// This should allow parsers to be used in a use block, without having to bind to the result.
+pub fn do(p: Parser(a), then: fn() -> Parser(b)) -> Parser(b) {
+  fn(input) {
+    case p(input) {
+      Some(ps) -> then()(ps.remaining)
+      None -> None
+    }
+  }
+}
+
 /// Maps the specified function over the result of a parser.
 pub fn map(p: Parser(a), f: fn(a) -> b) -> Parser(b) {
   use res <- then(p)
@@ -169,7 +180,7 @@ pub fn save_state(next: fn(List(String)) -> Parser(b)) -> Parser(b) {
 }
 
 /// A helper to restore a snapshot of a parser state before moving on to the next parser.
-pub fn restore(state, next: fn(Nil) -> Parser(b)) -> Parser(b) {
+pub fn restore(state, next: fn() -> Parser(b)) -> Parser(b) {
   let p = fn(_) { Some(ParseSuccess(Nil, state)) }
-  then(p, next)
+  do(p, next)
 }
