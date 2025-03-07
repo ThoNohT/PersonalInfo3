@@ -21,6 +21,7 @@ pub fn check(default: a, value: Bool, apply fun: fn() -> #(a, Effect(b))) -> #(a
 }
 
 /// Dispatches the specified message every specified interval in milliseconds.
+@target(javascript)
 pub fn every(interval: Int, tick: msg) -> Effect(msg) {
   effect.from(fn(dispatch) {
     do_every(interval, fn() {
@@ -29,5 +30,6 @@ pub fn every(interval: Int, tick: msg) -> Effect(msg) {
   })
 }
 
+@target(javascript)
 @external(javascript, "./ffi.mjs", "every")
 fn do_every(_interval: Int, _cb: fn() -> Nil) -> Nil

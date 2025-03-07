@@ -6,6 +6,7 @@ target = "erlang"
 
 [dependencies]
 gleam_stdlib = ">= 0.44.0 and < 2.0.0"
+personalinfo3_shared = { path = "../shared" }
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"
