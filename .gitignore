@@ -1,6 +1,6 @@
 *.beam
 *.ez
-/build
-/dist/*.js
-/dist/*.js.map
+/*/build
+/client/dist/*.js
+/client/dist/*.js.map
 erl_crash.dump
