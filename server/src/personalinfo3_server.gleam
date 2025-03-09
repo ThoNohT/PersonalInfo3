@@ -9,16 +9,19 @@ pub fn middleware(req: wisp.Request, handle_request: fn(wisp.Request) -> wisp.Re
   use <- wisp.log_request(req)
   use <- wisp.rescue_crashes
   use req <- wisp.handle_head(req)
+  
+  // Serve static files, and a dedicated handler for the empty path which should host index.html.
   use <- wisp.serve_static(req, under: "/static", from: "..//client//dist")
-
-  handle_request(req)
+  case wisp.path_segments(req) {
+    [] -> wisp.ok()
+          |> wisp.set_body(wisp.File("..//client//dist//index.html"))
+    _ -> handle_request(req)
+  }
 }
 
 fn handle_request(req: wisp.Request) -> wisp.Response {
   use _req <- middleware(req)
-
-  wisp.ok()
-  |> wisp.set_body(wisp.File("..//client//dist//index.html"))
+  wisp.not_found() |> wisp.string_body("Not found!")
 }
 
 pub fn main() {
