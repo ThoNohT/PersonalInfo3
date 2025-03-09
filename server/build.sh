@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 
+cd "$(dirname "$0")"
 set -x
 
 if [ $1 = "build" ]; then
@@ -7,6 +8,9 @@ if [ $1 = "build" ]; then
 
 elif [ $1 = "clean" ]; then
     rm -rf ./build
+
+elif [ $1 = "run" ]; then
+    gleam run
 
 elif [ $1 = "test" ]; then
     gleam test

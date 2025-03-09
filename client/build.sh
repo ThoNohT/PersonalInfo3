@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 
+cd "$(dirname "$0")"
 set -x
 
 if [ $1 = "build" ]; then
