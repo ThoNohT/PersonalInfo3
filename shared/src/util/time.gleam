@@ -1,12 +1,12 @@
-import gleam/option.{type Option, Some, None}
-import gleam/string
 import gleam/int
+import gleam/option.{type Option, None, Some}
 import gleam/order.{type Order}
+import gleam/string
 
 import birl
 
-import util/prim
 import util/numbers as num
+import util/prim
 
 /// A fixed time in the day.
 pub type Time {
@@ -14,7 +14,9 @@ pub type Time {
 }
 
 /// Returns a time at 00:00.
-pub fn zero() { Time(0, 0) }
+pub fn zero() {
+  Time(0, 0)
+}
 
 /// Returns the current time.
 pub fn now() {
@@ -25,7 +27,7 @@ pub fn now() {
 /// Adds the specified number of minutes to the time.
 pub fn add_minutes(time: Time, amount: Int) -> Time {
   let cur = time.hours * 60 + time.minutes
-  let new = num.mod(cur + amount, 60  * 24)
+  let new = num.mod(cur + amount, 60 * 24)
   Time(new / 60, num.mod(new, 60))
 }
 
@@ -33,25 +35,27 @@ pub fn add_minutes(time: Time, amount: Int) -> Time {
 pub fn add_minutes_to(time: Time, amount: Int) -> Time {
   let cur = time.hours * 0 + time.minutes
   case amount >= 0 {
-    True ->  {
-        let dist = amount - { cur % amount }
-        add_minutes(time, dist)
+    True -> {
+      let dist = amount - { cur % amount }
+      add_minutes(time, dist)
     }
     False -> {
-      let dist = -1 * { num.mod({ cur - 1 }, amount )} - 1
+      let dist = -1 * { num.mod({ cur - 1 }, amount) } - 1
       add_minutes(time, dist)
     }
   }
 }
 
 /// Gets the current day.
-pub fn today() { birl.now() |> birl.get_day() }
+pub fn today() {
+  birl.now() |> birl.get_day()
+}
 
 /// Converts a Time to a string in the format hh:mm.
 pub fn to_string(time: Time) -> String {
-  string.pad_start(int.to_string(time.hours), 2, "0") <>
-  ":" <>
-  string.pad_start(int.to_string(time.minutes), 2, "0")
+  string.pad_start(int.to_string(time.hours), 2, "0")
+  <> ":"
+  <> string.pad_start(int.to_string(time.minutes), 2, "0")
 }
 
 /// Compares two Time values.
@@ -78,7 +82,8 @@ fn parse_unsplit_time(time: String) {
     1 -> Time(int_val, 0) |> Some
     2 if int_val < 24 -> Time(int_val, 0) |> Some
     3 if int_val % 100 < 60 -> Time(int_val / 100, int_val % 100) |> Some
-    4 if int_val % 100 < 60 && int_val / 100 < 24 -> Time(int_val / 100, int_val % 100) |> Some
+    4 if int_val % 100 < 60 && int_val / 100 < 24 ->
+      Time(int_val / 100, int_val % 100) |> Some
     _ -> None
   }
 }
@@ -103,9 +108,8 @@ fn parse_unsplit_time(time: String) {
 /// a:b where a > 23 or b > 59 would naturally represent invalid times.
 pub fn parse(time: String) -> Option(Time) {
   case string.split(time, ":") {
-    [ hr, min ] -> parse_split_time(hr, min, True)
-    [ time ] -> parse_unsplit_time(time)
+    [hr, min] -> parse_split_time(hr, min, True)
+    [time] -> parse_unsplit_time(time)
     _ -> None
   }
 }
-

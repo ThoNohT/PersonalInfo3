@@ -1,18 +1,18 @@
 import gleam/int
-import gleam/string
-import gleam/option.{type Option, Some, None}
+import gleam/option.{type Option, None, Some}
 import gleam/order.{type Order}
+import gleam/string
 
-import birl.{type Day, Day, type Time, type Weekday}
+import birl.{type Day, type Time, type Weekday, Day}
 import birl/duration
 
 import util/prim
 
 /// Converts a Day to a Time.
 fn to_time_midnight(day: Day) -> Time {
-    // Note that we can assert it is parsed, since we provided the string ourselves.
-    let assert Ok(parsed) = birl.parse(to_string(day)<>"t00:00:00z")
-    parsed
+  // Note that we can assert it is parsed, since we provided the string ourselves.
+  let assert Ok(parsed) = birl.parse(to_string(day) <> "t00:00:00z")
+  parsed
 }
 
 /// Maps a function over Time over a Day.
@@ -46,11 +46,11 @@ pub fn clamp(day: Day, min: Day, max: Day) -> Day {
 
 /// Converts a Day to a string in the format yyyy-mm-dd.
 pub fn to_string(day: Day) -> String {
-  string.pad_start(int.to_string(day.year), 4, "0") <>
-  "-" <>
-  string.pad_start(int.to_string(day.month), 2, "0") <>
-  "-" <>
-  string.pad_start(int.to_string(day.date), 2, "0")
+  string.pad_start(int.to_string(day.year), 4, "0")
+  <> "-"
+  <> string.pad_start(int.to_string(day.month), 2, "0")
+  <> "-"
+  <> string.pad_start(int.to_string(day.date), 2, "0")
 }
 
 /// Returns the difference in days between two Days.
@@ -79,7 +79,9 @@ pub fn compare(a: Day, b: Day) -> Order {
 }
 
 /// Returns the weekday of the specified Day.
-pub fn weekday(day: Day) -> Weekday { day |> to_time_midnight |> birl.weekday }
+pub fn weekday(day: Day) -> Weekday {
+  day |> to_time_midnight |> birl.weekday
+}
 
 /// Converts a Weekday to an Int.
 pub fn weekday_to_int(weekday: Weekday) -> Int {

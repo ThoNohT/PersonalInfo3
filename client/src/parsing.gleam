@@ -5,18 +5,22 @@ import gleam/string
 
 import birl.{type Day, Day}
 
-import util/prim
-import util/parser.{type Parser} as p
-import util/numbers.{Pos}
-import util/duration.{type Duration, Duration}
 import model.{
-  type DayState, DayState,
-  type DayEvent, ClockEvent, HolidayBooking,
-  In, Home, Office, Gain, Use}
+  type DayEvent, type DayState, ClockEvent, DayState, Gain, HolidayBooking, Home,
+  In, Office, Use,
+}
+import util/duration.{type Duration, Duration}
+import util/numbers.{Pos}
+import util/parser.{type Parser} as p
+import util/prim
 
 /// Parsed data for constructhing the state.
 pub type StateInput {
-  StateInput(week_target: Duration, travel_distance: Float, history: List(DayState))
+  StateInput(
+    week_target: Duration,
+    travel_distance: Float,
+    history: List(DayState),
+  )
 }
 
 /// Parses a positive Int.
@@ -27,7 +31,10 @@ fn parse_pos_int() -> Parser(Int) {
 
 /// Parses a Duration, where the last 2 digits are the minutes, and everything before the hours.
 fn parse_duration() -> Parser(Duration) {
-  parse_pos_int() |> p.map(fn(nr) { Duration(nr / 100, nr % 100, Pos, Some(duration.DecimalFormat)) })
+  parse_pos_int()
+  |> p.map(fn(nr) {
+    Duration(nr / 100, nr % 100, Pos, Some(duration.DecimalFormat))
+  })
 }
 
 /// Parses a Float, where the decimal separator is a ".".
@@ -48,18 +55,18 @@ fn parse_date() -> Parser(Day) {
   use year <- p.then(
     p.repeat(p.check(p.char_is_digit), 4)
     |> p.map(string.concat)
-    |> p.bind(fn(x) { int.parse(x) |> p.from_result })
+    |> p.bind(fn(x) { int.parse(x) |> p.from_result }),
   )
   use month <- p.then(
     p.repeat(p.check(p.char_is_digit), 2)
     |> p.map(string.concat)
-    |> p.bind(fn(x) { int.parse(x) |> p.from_result })
+    |> p.bind(fn(x) { int.parse(x) |> p.from_result }),
   )
   use day <- p.then(
     p.repeat(p.check(p.char_is_digit), 2)
     |> p.map(string.concat)
-    |> p.bind(fn(x) { int.parse(x) |> p.from_result })
-    )
+    |> p.bind(fn(x) { int.parse(x) |> p.from_result }),
+  )
 
   p.success(Day(year, month, day))
 }
@@ -72,7 +79,8 @@ fn parse_lunch() -> Parser(Bool) {
     "L" -> True
     "N" -> False
     _ -> panic as "Should always be L or N"
-  } |> p.success
+  }
+  |> p.success
 }
 
 fn parse_day_event() -> Parser(DayEvent) {
@@ -106,7 +114,8 @@ fn parse_day_state() -> Parser(DayState) {
 }
 
 fn parse_line(acc: Option(StateInput), line: String) -> Option(StateInput) {
-  use <- prim.check(acc, !{string.is_empty(line)}) // Skip empty lines.
+  use <- prim.check(acc, !{ string.is_empty(line) })
+  // Skip empty lines.
   use si <- option.then(acc)
 
   let parser = {
@@ -132,7 +141,7 @@ fn parse_line(acc: Option(StateInput), line: String) -> Option(StateInput) {
         use <- p.restore(checkpoint)
         use st <- p.then(parse_day_state())
         use <- p.do(p.end())
-        p.success(StateInput(..si, history: [ st, ..si.history ]))
+        p.success(StateInput(..si, history: [st, ..si.history]))
       }
     }
   }
@@ -142,8 +151,9 @@ fn parse_line(acc: Option(StateInput), line: String) -> Option(StateInput) {
 
 pub fn parse_state_input(input: String) -> Option(StateInput) {
   input
-    // Split in lines.
-    |> string.replace("\r", "") |> string.split("\n")
-    // Parse input (history will be reversed).
-    |> list.fold(Some(StateInput(duration.zero(), 0.0, [])), parse_line)
+  // Split in lines.
+  |> string.replace("\r", "")
+  |> string.split("\n")
+  // Parse input (history will be reversed).
+  |> list.fold(Some(StateInput(duration.zero(), 0.0, [])), parse_line)
 }

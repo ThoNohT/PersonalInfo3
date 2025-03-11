@@ -7,4 +7,3 @@ pub fn one(decoder: Decoder(a)) -> Decoder(a) {
   use val <- d.field(0, decoder)
   d.success(val)
 }
-
