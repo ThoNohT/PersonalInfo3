@@ -1,31 +1,41 @@
 import gleam/list
-import gleam/option.{type Option, Some, None}
-import gleam/order.{Gt, Lt, Eq}
+import gleam/option.{type Option, None, Some}
+import gleam/order.{Eq, Gt, Lt}
 
 import birl.{type Day, Day}
 import lustre_http as http
 
+import util/day
+import util/duration.{type Duration, Duration}
+import util/numbers.{Pos}
 import util/prim
 import util/time.{type Time, Time}
-import util/day
-import util/numbers.{Pos}
-import util/duration.{type Duration, Duration}
 
 pub type Validated(a) {
   Validated(input: String, parsed: Option(a))
 }
 
 /// Checks whether a Validated(a) is valid.
-pub fn is_valid(input: Validated(a)) -> Bool { input.parsed |> option.is_some }
+pub fn is_valid(input: Validated(a)) -> Bool {
+  input.parsed |> option.is_some
+}
 
 /// Creates a new Validated(a) from an input strig using a validation function.
-pub fn validate(input: String, with validation: fn(String) -> Option(a)) -> Validated(a) {
+pub fn validate(
+  input: String,
+  with validation: fn(String) -> Option(a),
+) -> Validated(a) {
   Validated(input, validation(input))
 }
 
-pub fn unvalidated() -> Validated(a) { Validated("", None) }
+pub fn unvalidated() -> Validated(a) {
+  Validated("", None)
+}
 
-pub type ClockLocation { Home Office }
+pub type ClockLocation {
+  Home
+  Office
+}
 
 pub fn switch_location(location) {
   case location {
@@ -34,36 +44,55 @@ pub fn switch_location(location) {
   }
 }
 
-pub type ClockKind { In Out }
+pub type ClockKind {
+  In
+  Out
+}
 
-pub type HolidayBookingKind { Gain Use }
+pub type HolidayBookingKind {
+  Gain
+  Use
+}
 
 pub type DayEvent {
   ClockEvent(index: Int, time: Time, location: ClockLocation, kind: ClockKind)
   HolidayBooking(index: Int, amount: Duration, kind: HolidayBookingKind)
 }
 
-pub fn compare_day_event(a: DayEvent, b : DayEvent) -> order.Order {
+pub fn compare_day_event(a: DayEvent, b: DayEvent) -> order.Order {
   case a, b {
     ClockEvent(..), HolidayBooking(..) -> Lt
     HolidayBooking(..), ClockEvent(..) -> Gt
     ClockEvent(time: t1, ..), ClockEvent(time: t2, ..) -> time.compare(t1, t2)
     HolidayBooking(kind: Gain, ..), HolidayBooking(kind: Use, ..) -> Lt
     HolidayBooking(kind: Use, ..), HolidayBooking(kind: Gain, ..) -> Gt
-    HolidayBooking(amount: a1, ..), HolidayBooking(amount: a2, ..) -> duration.compare(a1, a2)
+    HolidayBooking(amount: a1, ..), HolidayBooking(amount: a2, ..) ->
+      duration.compare(a1, a2)
   }
 }
 
 pub type DayStatistics {
   DayStatistics(
     eta: Duration,
-    total: Duration, total_office: Duration, total_home: Duration,
-    week: Duration, week_eta: Duration,
-    remaining_holiday: Duration)
+    total: Duration,
+    total_office: Duration,
+    total_home: Duration,
+    week: Duration,
+    week_eta: Duration,
+    remaining_holiday: Duration,
+  )
 }
 
 pub fn stats_zero() -> DayStatistics {
-  DayStatistics(duration.zero(), duration.zero(), duration.zero(), duration.zero(), duration.zero(), duration.zero(), duration.zero())
+  DayStatistics(
+    duration.zero(),
+    duration.zero(),
+    duration.zero(),
+    duration.zero(),
+    duration.zero(),
+    duration.zero(),
+    duration.zero(),
+  )
 }
 
 pub type DayState {
@@ -71,12 +100,22 @@ pub type DayState {
 }
 
 pub fn daystate_has_clock_event_at(ds: DayState, time: Time) {
-  let is_ce_at = fn(ce: DayEvent) { case ce { ClockEvent(time: cet, ..) -> cet == time _ -> False } }
+  let is_ce_at = fn(ce: DayEvent) {
+    case ce {
+      ClockEvent(time: cet, ..) -> cet == time
+      _ -> False
+    }
+  }
   ds.events |> list.any(is_ce_at)
 }
 
 pub fn daystate_has_clock_events(ds: DayState) {
-  let is_ce = fn(ce) { case ce { ClockEvent(..) -> True _ -> False } }
+  let is_ce = fn(ce) {
+    case ce {
+      ClockEvent(..) -> True
+      _ -> False
+    }
+  }
   ds.events |> list.any(is_ce)
 }
 
@@ -84,7 +123,7 @@ pub type InputState {
   InputState(
     clock_input: Validated(Time),
     holiday_input: Validated(Duration),
-    target_input: Validated(Duration)
+    target_input: Validated(Duration),
   )
 }
 
@@ -112,14 +151,27 @@ pub type State {
     selected_event_index: Option(Int),
     week_target: Duration,
     travel_distance: Float,
-    input_state: InputState)
+    input_state: InputState,
+  )
 }
 
 /// The different amounts that can be moved through the history.
-pub type DateMoveAmount { MoveDay MoveWeek MoveMonth MoveYear ToToday }
+pub type DateMoveAmount {
+  MoveDay
+  MoveWeek
+  MoveMonth
+  MoveYear
+  ToToday
+}
 
 /// Moves the day by the specified amount, but keeping it between the provided min and max(today) day.
-pub fn move_date(day: Day, amount: DateMoveAmount, direction: MoveDirection, min: Day, today: Day) -> Day {
+pub fn move_date(
+  day: Day,
+  amount: DateMoveAmount,
+  direction: MoveDirection,
+  min: Day,
+  today: Day,
+) -> Day {
   // If we are at the min edge, we will always move by one bakward. Otherwise, always cap it between min and max.
   use <- prim.check(day.prev(day), !{ direction == Backward && day == min })
 
@@ -170,17 +222,32 @@ pub fn move_date(day: Day, amount: DateMoveAmount, direction: MoveDirection, min
     MoveMonth, _ -> move_month(day, direction)
     MoveYear, _ -> move_year(day, direction)
     ToToday, _ -> today
-  } |> day.clamp(min, today)
+  }
+  |> day.clamp(min, today)
 }
 
 /// The differnt amounts that can be moved in floats.
-pub type FloatMoveAmount { Ones Tens Tenths }
+pub type FloatMoveAmount {
+  Ones
+  Tens
+  Tenths
+}
 
 /// The different amounts that can be moved through time/durations.
-pub type TimeMoveAmount { MoveMinute MoveQuarter MoveStartQuarter MoveHour MoveStartHour ToNow }
+pub type TimeMoveAmount {
+  MoveMinute
+  MoveQuarter
+  MoveStartQuarter
+  MoveHour
+  MoveStartHour
+  ToNow
+}
 
 /// The directions in which can be moved through time.
-pub type MoveDirection { Forward Backward }
+pub type MoveDirection {
+  Forward
+  Backward
+}
 
 pub type Msg {
   NoOp
@@ -210,15 +277,24 @@ pub type Msg {
 }
 
 pub fn recalculate_events(events: List(DayEvent)) -> List(DayEvent) {
-  let calc_kind = fn(i) { case i % 2 { 0 -> In _ -> Out } }
+  let calc_kind = fn(i) {
+    case i % 2 {
+      0 -> In
+      _ -> Out
+    }
+  }
 
   let folder = fn(acc, event: DayEvent) {
     let #(gc, cc, acc) = acc
     case event {
-      HolidayBooking(..) as h ->
-        #(gc + 1, cc, [ HolidayBooking(..h, index: gc), ..acc ])
-      ClockEvent(..) as c ->
-        #(gc + 1, cc + 1, [ ClockEvent(..c, index: gc, kind: calc_kind(cc)), ..acc ])
+      HolidayBooking(..) as h -> #(gc + 1, cc, [
+        HolidayBooking(..h, index: gc),
+        ..acc
+      ])
+      ClockEvent(..) as c -> #(gc + 1, cc + 1, [
+        ClockEvent(..c, index: gc, kind: calc_kind(cc)),
+        ..acc
+      ])
     }
   }
 
@@ -233,10 +309,10 @@ pub fn recalculate_events(events: List(DayEvent)) -> List(DayEvent) {
 
 pub fn update_history(state: State) -> State {
   let update = fn(ds: DayState) {
-     case state.current_state.date == ds.date {
-       False -> ds
-       True -> state.current_state
-     }
+    case state.current_state.date == ds.date {
+      False -> ds
+      True -> state.current_state
+    }
   }
 
   State(..state, history: state.history |> list.map(update))
@@ -246,14 +322,24 @@ pub fn recalculate_statistics(state: State) -> State {
   let st = state.current_state
   let hist = state.history
 
-  let add_hours = fn(stats: DayStatistics, location: ClockLocation, amount: Duration) {
+  let add_hours = fn(
+    stats: DayStatistics,
+    location: ClockLocation,
+    amount: Duration,
+  ) {
     case location {
-        Office -> DayStatistics(..stats,
-            total: duration.add(stats.total, amount),
-            total_office: duration.add(stats.total_office, amount))
-        Home -> DayStatistics(..stats,
-            total: duration.add(stats.total, amount),
-            total_home: duration.add(stats.total_home, amount))
+      Office ->
+        DayStatistics(
+          ..stats,
+          total: duration.add(stats.total, amount),
+          total_office: duration.add(stats.total_office, amount),
+        )
+      Home ->
+        DayStatistics(
+          ..stats,
+          total: duration.add(stats.total, amount),
+          total_home: duration.add(stats.total_home, amount),
+        )
     }
   }
 
@@ -261,15 +347,28 @@ pub fn recalculate_statistics(state: State) -> State {
     DayStatistics(..stats, week: duration.add(stats.week, amount))
   }
 
-  let folder = fn(acc: #(DayStatistics, Option(#(ClockLocation, Time))), event: #(DayEvent, Day)) {
+  let folder = fn(
+    acc: #(DayStatistics, Option(#(ClockLocation, Time))),
+    event: #(DayEvent, Day),
+  ) {
     let curr_day = event.1 == st.date
     let this_week = day.week_number(event.1) == day.week_number(st.date)
 
     case event.0 {
-      HolidayBooking(_, dur, Gain) ->
-        #(DayStatistics(..acc.0, remaining_holiday: duration.add(acc.0.remaining_holiday, dur)), acc.1)
-      HolidayBooking(_, dur, Use) ->
-        #(DayStatistics(..acc.0, remaining_holiday: duration.subtract(acc.0.remaining_holiday, dur)), acc.1)
+      HolidayBooking(_, dur, Gain) -> #(
+        DayStatistics(
+          ..acc.0,
+          remaining_holiday: duration.add({ acc.0 }.remaining_holiday, dur),
+        ),
+        acc.1,
+      )
+      HolidayBooking(_, dur, Use) -> #(
+        DayStatistics(
+          ..acc.0,
+          remaining_holiday: duration.subtract({ acc.0 }.remaining_holiday, dur),
+        ),
+        acc.1,
+      )
 
       ClockEvent(_, time, loc, In) -> {
         use <- prim.check(acc, this_week)
@@ -280,17 +379,27 @@ pub fn recalculate_statistics(state: State) -> State {
         // Location can be ignored here. We will use the location of the clock-in event.
         use <- prim.check(acc, this_week)
         let assert Some(state) = acc.1
-        let acc = #(add_week(acc.0, duration.between(from: state.1, to: time)), acc.1)
+        let acc = #(
+          add_week(acc.0, duration.between(from: state.1, to: time)),
+          acc.1,
+        )
         use <- prim.check(acc, curr_day)
-        #(add_hours(acc.0, state.0, duration.between(from: state.1, to: time)), None)
+        #(
+          add_hours(acc.0, state.0, duration.between(from: state.1, to: time)),
+          None,
+        )
       }
     }
   }
 
   // Calculate all totals.
-  let stats = hist
+  let stats =
+    hist
     |> list.filter(fn(s) { day.compare(s.date, st.date) != Gt })
-    |> list.map(fn(s) { s.events |> recalculate_events |> list.map(fn(e) { #(e, s.date) }) }) |> list.flatten
+    |> list.map(fn(s) {
+      s.events |> recalculate_events |> list.map(fn(e) { #(e, s.date) })
+    })
+    |> list.flatten
     |> list.fold(#(stats_zero(), None), folder)
 
   // Add the time between the last event and now, if the last event was an in-event.
@@ -303,7 +412,11 @@ pub fn recalculate_statistics(state: State) -> State {
     _, _ -> stats.0
   }
 
-  let stats = DayStatistics(..stats, week_eta: duration.subtract(state.week_target, stats.week))
+  let stats =
+    DayStatistics(
+      ..stats,
+      week_eta: duration.subtract(state.week_target, stats.week),
+    )
 
   // If lunch is included, assume half an hour of clocked time doesn't exist. Take it from the longest period
   // of office or home, but prefer office if this cannot be determined. If no clock events, then don't
@@ -312,27 +425,48 @@ pub fn recalculate_statistics(state: State) -> State {
     True, True -> {
       let half_hour = Duration(0, 30, Pos, None)
       case duration.compare(stats.total_office, stats.total_home) {
-        Lt -> DayStatistics(..stats,
-          total: duration.subtract(stats.total, half_hour),
-          total_home: duration.subtract(stats.total_home, half_hour))
-        _ -> DayStatistics(..stats,
-          total: duration.subtract(stats.total, half_hour),
-          total_office: duration.subtract(stats.total_office, half_hour))
+        Lt ->
+          DayStatistics(
+            ..stats,
+            total: duration.subtract(stats.total, half_hour),
+            total_home: duration.subtract(stats.total_home, half_hour),
+          )
+        _ ->
+          DayStatistics(
+            ..stats,
+            total: duration.subtract(stats.total, half_hour),
+            total_office: duration.subtract(stats.total_office, half_hour),
+          )
       }
     }
     _, _ -> stats
   }
 
-  State(..state, stats: DayStatistics(..stats, eta: duration.subtract(st.target, stats.total)))
+  State(
+    ..state,
+    stats: DayStatistics(
+      ..stats,
+      eta: duration.subtract(st.target, stats.total),
+    ),
+  )
 }
 
 /// Adds a new DayState at the specified day in the state history.
 pub fn add_day_state(state: State, day: Day) -> State {
-  let lunch = case day.weekday(day) { birl.Sat | birl.Sun -> False _ -> True }
-  let target = case day.weekday(day) { birl.Sat | birl.Sun -> duration.zero() _ -> duration.hours(8) }
+  let lunch = case day.weekday(day) {
+    birl.Sat | birl.Sun -> False
+    _ -> True
+  }
+  let target = case day.weekday(day) {
+    birl.Sat | birl.Sun -> duration.zero()
+    _ -> duration.hours(8)
+  }
   let current_state = DayState(date: day, target:, lunch:, events: [])
 
-  let folder = fn(acc: #(List(DayState), Option(DayState)), state: DayState) -> #(List(DayState), Option(DayState)) {
+  let folder = fn(acc: #(List(DayState), Option(DayState)), state: DayState) -> #(
+    List(DayState),
+    Option(DayState),
+  ) {
     case acc.1, day.compare(day, state.date) {
       Some(_), _ -> #([state, ..acc.0], acc.1)
       None, Eq -> #([state, ..acc.0], Some(state))
@@ -343,44 +477,62 @@ pub fn add_day_state(state: State, day: Day) -> State {
   }
 
   let result = state.history |> list.fold(#([], None), folder)
-  State(..state, current_state: result.1 |> option.unwrap(current_state), history: result.0)
+  State(
+    ..state,
+    current_state: result.1 |> option.unwrap(current_state),
+    history: result.0,
+  )
 }
 
 /// Calculates the new time based on a move amount and direction, and the current time input.
-pub fn calculate_target_time(current: Option(Time), amount: TimeMoveAmount, dir: MoveDirection, now: Time) -> Option(Time) {
+pub fn calculate_target_time(
+  current: Option(Time),
+  amount: TimeMoveAmount,
+  dir: MoveDirection,
+  now: Time,
+) -> Option(Time) {
   use <- prim.check(Some(now), amount != ToNow)
   use current <- option.then(current)
 
   case amount, dir {
-   MoveMinute, Forward -> time.add_minutes(current, 1)
-   MoveMinute, Backward -> time.add_minutes(current, -1)
-   MoveQuarter, Forward -> time.add_minutes(current, 15)
-   MoveQuarter, Backward -> time.add_minutes(current, -15)
-   MoveStartQuarter, Forward -> time.add_minutes_to(current, 15)
-   MoveStartQuarter, Backward -> time.add_minutes_to(current, -15)
-   MoveHour, Forward -> time.add_minutes(current, 60)
-   MoveHour, Backward -> time.add_minutes(current, -60)
-   MoveStartHour, Forward -> time.add_minutes_to(current, 60)
-   MoveStartHour, Backward -> time.add_minutes_to(current, -60)
-   ToNow, _ -> now // This is already handled above, but we need to cover all cases anyway.
-  } |> Some
+    MoveMinute, Forward -> time.add_minutes(current, 1)
+    MoveMinute, Backward -> time.add_minutes(current, -1)
+    MoveQuarter, Forward -> time.add_minutes(current, 15)
+    MoveQuarter, Backward -> time.add_minutes(current, -15)
+    MoveStartQuarter, Forward -> time.add_minutes_to(current, 15)
+    MoveStartQuarter, Backward -> time.add_minutes_to(current, -15)
+    MoveHour, Forward -> time.add_minutes(current, 60)
+    MoveHour, Backward -> time.add_minutes(current, -60)
+    MoveStartHour, Forward -> time.add_minutes_to(current, 60)
+    MoveStartHour, Backward -> time.add_minutes_to(current, -60)
+    ToNow, _ -> now
+    // This is already handled above, but we need to cover all cases anyway.
+  }
+  |> Some
 }
 
 /// Calculates the new duration based on a move amount and direction, and the current duration input.
-pub fn calculate_target_duration(current: Option(Duration), amount: TimeMoveAmount, dir: MoveDirection, max: Int) -> Option(Duration) {
+pub fn calculate_target_duration(
+  current: Option(Duration),
+  amount: TimeMoveAmount,
+  dir: MoveDirection,
+  max: Int,
+) -> Option(Duration) {
   use current <- option.then(current)
 
   case amount, dir {
-   MoveMinute, Forward -> duration.add_minutes(current, 1, max)
-   MoveMinute, Backward -> duration.add_minutes(current, -1, max)
-   MoveQuarter, Forward -> duration.add_minutes(current, 15, max)
-   MoveQuarter, Backward -> duration.add_minutes(current, -15, max)
-   MoveStartQuarter, Forward -> duration.add_minutes_to(current, 15, max)
-   MoveStartQuarter, Backward -> duration.add_minutes_to(current, -15, max)
-   MoveHour, Forward -> duration.add_minutes(current, 60, max)
-   MoveHour, Backward -> duration.add_minutes(current, -60, max)
-   MoveStartHour, Forward -> duration.add_minutes_to(current, 60, max)
-   MoveStartHour, Backward -> duration.add_minutes_to(current, -60, max)
-   ToNow, _ -> current // This should never happen, it doesn't do anything anyway.
-  } |> Some
+    MoveMinute, Forward -> duration.add_minutes(current, 1, max)
+    MoveMinute, Backward -> duration.add_minutes(current, -1, max)
+    MoveQuarter, Forward -> duration.add_minutes(current, 15, max)
+    MoveQuarter, Backward -> duration.add_minutes(current, -15, max)
+    MoveStartQuarter, Forward -> duration.add_minutes_to(current, 15, max)
+    MoveStartQuarter, Backward -> duration.add_minutes_to(current, -15, max)
+    MoveHour, Forward -> duration.add_minutes(current, 60, max)
+    MoveHour, Backward -> duration.add_minutes(current, -60, max)
+    MoveStartHour, Forward -> duration.add_minutes_to(current, 60, max)
+    MoveStartHour, Backward -> duration.add_minutes_to(current, -60, max)
+    ToNow, _ -> current
+    // This should never happen, it doesn't do anything anyway.
+  }
+  |> Some
 }

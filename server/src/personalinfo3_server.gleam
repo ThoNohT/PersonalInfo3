@@ -1,5 +1,5 @@
-import gleam/io
 import gleam/erlang/process
+import gleam/io
 import gleam/result
 
 import mist
@@ -7,8 +7,8 @@ import sqlight
 import wisp
 import wisp/wisp_mist
 
-import util/prim
 import db_migrate
+import util/prim
 
 pub fn middleware(
   req: wisp.Request,
@@ -22,9 +22,7 @@ pub fn middleware(
   // Serve static files, and a dedicated handler for the empty path which should host index.html.
   use <- wisp.serve_static(req, under: "/static", from: "..//client//dist")
   case wisp.path_segments(req) {
-    [] ->
-      wisp.ok()
-      |> wisp.set_body(wisp.File("..//client//dist//index.html"))
+    [] -> wisp.ok() |> wisp.set_body(wisp.File("..//client//dist//index.html"))
     _ -> handle_request(req)
   }
 }
@@ -48,8 +46,9 @@ pub fn main() {
   // Perform startup logic.
   let conn_str = "file:../pi3.db"
   use <- prim.res(
-    db_migrate.migrate_database(conn_str, "../migrations") 
-    |> result.map_error(io.println_error))
+    db_migrate.migrate_database(conn_str, "../migrations")
+    |> result.map_error(io.println_error),
+  )
 
   let handle_request = handle_request(_, conn_str)
 

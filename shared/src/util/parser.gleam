@@ -1,10 +1,16 @@
 import gleam/io
-import gleam/option.{type Option, Some, None}
+import gleam/option.{type Option, None, Some}
 import gleam/string
 
-pub type ParseSuccess(a) { ParseSuccess(result: a, remaining: List(String)) }
-pub type ParseResult(a) = Option(ParseSuccess(a))
-pub type Parser(a) = fn(List(String)) -> ParseResult(a)
+pub type ParseSuccess(a) {
+  ParseSuccess(result: a, remaining: List(String))
+}
+
+pub type ParseResult(a) =
+  Option(ParseSuccess(a))
+
+pub type Parser(a) =
+  fn(List(String)) -> ParseResult(a)
 
 /// Runs a parser.
 pub fn run(p: Parser(a), input: String) -> Option(a) {
@@ -17,7 +23,9 @@ pub fn success(res: a) -> Parser(a) {
 }
 
 /// A parser that always fails.
-pub fn failure() -> Parser(a) { fn(_) { None } }
+pub fn failure() -> Parser(a) {
+  fn(_) { None }
+}
 
 /// Converts a Result into a parser.
 pub fn from_result(res: Result(a, b)) -> Parser(a) {
@@ -39,7 +47,7 @@ pub fn from_option(res: Option(a)) -> Parser(a) {
 pub fn pchar() -> Parser(String) {
   fn(input) {
     case input {
-      [ head, ..remaining ] -> Some(ParseSuccess(head, remaining))
+      [head, ..remaining] -> Some(ParseSuccess(head, remaining))
       [] -> None
     }
   }
@@ -48,7 +56,10 @@ pub fn pchar() -> Parser(String) {
 /// A parser that succeeds if there is no more input left, and fails otherwise.
 pub fn end() -> Parser(Nil) {
   fn(input) {
-    case input { [] -> Some(ParseSuccess(Nil, input)) _ -> None }
+    case input {
+      [] -> Some(ParseSuccess(Nil, input))
+      _ -> None
+    }
   }
 }
 
@@ -96,7 +107,9 @@ pub fn check(pred: fn(String) -> Bool) -> Parser(String) {
 }
 
 /// A parser that parses the specified character.
-pub fn char(char: String) -> Parser(String) { check(fn(c) { c == char }) }
+pub fn char(char: String) -> Parser(String) {
+  check(fn(c) { c == char })
+}
 
 /// A parser that parses characters as long as a predicate matches, and converts it into a string.
 pub fn string_check(pred: fn(String) -> Bool) -> Parser(String) {
@@ -142,7 +155,7 @@ pub fn star(p: Parser(a)) -> Parser(List(a)) {
     use elem <- then(p)
     use rest <- then(star(p))
 
-    success([ elem, ..rest ])
+    success([elem, ..rest])
   }
 
   alt(combined, success([]))
@@ -152,18 +165,18 @@ pub fn star(p: Parser(a)) -> Parser(List(a)) {
 pub fn plus(p: Parser(a)) -> Parser(List(a)) {
   use fst <- then(p)
   use rest <- then(star(p))
-  success([ fst, ..rest ])
+  success([fst, ..rest])
 }
 
 /// Runs a parser exactly the specified number of times.
 pub fn repeat(p: Parser(a), count: Int) -> Parser(List(a)) {
   case count {
-    1 -> map(p, fn(x) { [ x ] })
+    1 -> map(p, fn(x) { [x] })
     _ if count > 1 -> {
       use fst <- then(p)
       use rest <- then(repeat(p, count - 1))
 
-      success([ fst, ..rest ])
+      success([fst, ..rest])
     }
     _ -> success([])
   }
@@ -174,7 +187,7 @@ pub fn repeat(p: Parser(a), count: Int) -> Parser(List(a)) {
 /// Returns the UtfCodepoint for the specified character.
 /// Will fail if more than one character is provided.
 pub fn get_ucp(input: String) -> UtfCodepoint {
-  let assert [ codepoint ] = string.to_utf_codepoints(input)
+  let assert [codepoint] = string.to_utf_codepoints(input)
   codepoint
 }
 
@@ -194,7 +207,10 @@ pub fn char_is_digit(char: String) -> Bool {
 pub fn debug(fail: Bool) -> Parser(Nil) {
   fn(input) {
     io.println("Debug: " <> string.concat(input))
-    case fail { False -> Some(ParseSuccess(Nil, input)) True -> None }
+    case fail {
+      False -> Some(ParseSuccess(Nil, input))
+      True -> None
+    }
   }
 }
 
