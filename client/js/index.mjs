@@ -1,2 +1,2 @@
-import { main } from '../build/dev/javascript/personalinfo3_client/personalinfo.mjs';
+import { main } from '../build/dev/javascript/personalinfo3_client/client.mjs';
 main();

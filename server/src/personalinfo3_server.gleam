@@ -1,32 +1,57 @@
+import gleam/io
 import gleam/erlang/process
+import gleam/result
 
 import mist
+import sqlight
 import wisp
 import wisp/wisp_mist
 
-pub fn middleware(req: wisp.Request, handle_request: fn(wisp.Request) -> wisp.Response) -> wisp.Response {
+import util/prim
+import db_migrate
+
+pub fn middleware(
+  req: wisp.Request,
+  handle_request: fn(wisp.Request) -> wisp.Response,
+) -> wisp.Response {
   let req = wisp.method_override(req)
   use <- wisp.log_request(req)
   use <- wisp.rescue_crashes
   use req <- wisp.handle_head(req)
-  
+
   // Serve static files, and a dedicated handler for the empty path which should host index.html.
   use <- wisp.serve_static(req, under: "/static", from: "..//client//dist")
   case wisp.path_segments(req) {
-    [] -> wisp.ok()
-          |> wisp.set_body(wisp.File("..//client//dist//index.html"))
+    [] ->
+      wisp.ok()
+      |> wisp.set_body(wisp.File("..//client//dist//index.html"))
     _ -> handle_request(req)
   }
 }
 
-fn handle_request(req: wisp.Request) -> wisp.Response {
+fn handle_request(req: wisp.Request, conn_str: String) -> wisp.Response {
   use _req <- middleware(req)
+
+  use _conn <- sqlight.with_connection(conn_str)
   wisp.not_found() |> wisp.string_body("Not found!")
+}
+
+/// A context containing information to be used by handlers.
+pub type Context {
+  Context(db_conn: sqlight.Connection)
 }
 
 pub fn main() {
   wisp.configure_logger()
   let secret_key_base = wisp.random_string(64)
+
+  // Perform startup logic.
+  let conn_str = "file:../pi3.db"
+  use <- prim.res(
+    db_migrate.migrate_database(conn_str, "../migrations") 
+    |> result.map_error(io.println_error))
+
+  let handle_request = handle_request(_, conn_str)
 
   // Start the Mist web server.
   let assert Ok(_) =
@@ -38,4 +63,5 @@ pub fn main() {
   // The web server runs in new Erlang process, so put this one to sleep while
   // it works concurrently.
   process.sleep_forever()
+  Ok(Nil)
 }
