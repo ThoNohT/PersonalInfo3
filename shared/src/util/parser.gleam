@@ -89,16 +89,41 @@ pub fn bind(p: Parser(a), fp: fn(a) -> Parser(b)) -> Parser(b) {
 /// A parser that parses a single character, and succeeds only if it matches the predicate.
 pub fn check(pred: fn(String) -> Bool) -> Parser(String) {
   use char <- then(pchar())
-  case pred(char) { True -> success(char) False -> failure() }
+  case pred(char) {
+    True -> success(char)
+    False -> failure()
+  }
 }
 
 /// A parser that parses the specified character.
 pub fn char(char: String) -> Parser(String) { check(fn(c) { c == char }) }
 
+/// A parser that parses characters as long as a predicate matches, and converts it into a string.
+pub fn string_check(pred: fn(String) -> Bool) -> Parser(String) {
+  plus(check(pred)) |> map(string.concat)
+}
+
+/// A parser that parses the specified string.
+pub fn string(str: String) -> Parser(String) {
+  case string.pop_grapheme(str) {
+    Error(_) -> success("")
+    Ok(#(x, xs)) -> {
+      use hd <- then(char(x))
+      use tl <- then(string(xs))
+      success(string.concat([hd, tl]))
+    }
+  }
+}
+
 /// A parser that combines two parsers, by trying the first one first, and only if it fails,
 /// trying the second one on the same input.
 pub fn alt(p1: Parser(a), p2: Parser(a)) -> Parser(a) {
-  fn(input) { case p1(input) { Some(r) -> Some(r) None -> p2(input) } }
+  fn(input) {
+    case p1(input) {
+      Some(r) -> Some(r)
+      None -> p2(input)
+    }
+  }
 }
 
 /// A parser that tries all parsers in the provided list in turn, returning the result of the first
@@ -106,8 +131,8 @@ pub fn alt(p1: Parser(a), p2: Parser(a)) -> Parser(a) {
 pub fn one_of(ps: List(Parser(a))) -> Parser(a) {
   case ps {
     [] -> failure()
-    [ single ] -> single
-    [ head, ..tail ] -> alt(head, one_of(tail))
+    [single] -> single
+    [head, ..tail] -> alt(head, one_of(tail))
   }
 }
 

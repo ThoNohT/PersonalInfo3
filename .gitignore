@@ -4,3 +4,4 @@
 /client/dist/*.js
 /client/dist/*.js.map
 erl_crash.dump
+*.db

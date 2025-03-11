@@ -21,8 +21,8 @@ pub type StateInput {
 
 /// Parses a positive Int.
 fn parse_pos_int() -> Parser(Int) {
-  use int_str <- p.then(p.plus(p.check(p.char_is_digit)))
-  int_str |> string.concat |> int.parse() |> p.from_result
+  use int_str <- p.then(p.string_check(p.char_is_digit))
+  int_str |> int.parse() |> p.from_result
 }
 
 /// Parses a Duration, where the last 2 digits are the minutes, and everything before the hours.
@@ -51,7 +51,7 @@ fn parse_date() -> Parser(Day) {
     |> p.bind(fn(x) { int.parse(x) |> p.from_result })
   )
   use month <- p.then(
-    p.repeat(p.check( p.char_is_digit), 2)
+    p.repeat(p.check(p.char_is_digit), 2)
     |> p.map(string.concat)
     |> p.bind(fn(x) { int.parse(x) |> p.from_result })
   )
@@ -100,7 +100,7 @@ fn parse_day_event() -> Parser(DayEvent) {
 fn parse_day_state() -> Parser(DayState) {
   use date <- p.then(parse_date())
   use target <- p.then(parse_duration())
-  use lunch <- p.then (parse_lunch())
+  use lunch <- p.then(parse_lunch())
   use events <- p.then(p.star(parse_day_event()))
   p.success(DayState(date: date, target: target, lunch: lunch, events: events))
 }
