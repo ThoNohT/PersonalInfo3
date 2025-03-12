@@ -5,9 +5,9 @@ import gleam/string_tree
 import sqlight
 import wisp
 
-import util/prim
 import model
 import repository
+import util/prim
 
 pub fn handler(req: wisp.Request, conn_str: String) -> wisp.Response {
   // The route should start with "api/", or this function should not be called.
@@ -33,11 +33,18 @@ fn login(req: wisp.Request, conn_str: String) -> wisp.Response {
   use creds <- prim.try(wisp.bad_request(), decode.run(body, login_decoder))
 
   use conn <- sqlight.with_connection(conn_str)
-  use user <- prim.try(wisp.internal_server_error(), repository.get_user(conn, creds.0))
-  use user <- prim.then(wisp.response(401), user) // If not found, return 401 unauthorized.
+  use user <- prim.try(
+    wisp.internal_server_error(),
+    repository.get_user(conn, creds.0),
+  )
+  // If not found, return 401 unauthorized.
+  use user <- prim.then(wisp.response(401), user)
 
   // Check password
-  use <- prim.check(wisp.response(401), user.password_hash == model.hash_password(creds.1))
+  use <- prim.check(
+    wisp.response(401),
+    user.password_hash == model.hash_password(creds.1, user),
+  )
 
   // TODO: Insert session, cleanup session, return session id.
   wisp.json_response(string_tree.from_string(""), 200)
