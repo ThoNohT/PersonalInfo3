@@ -8,7 +8,8 @@ CREATE TABLE SimpleState (
 CREATE TABLE Users (
     UserId INTEGER NOT NULL PRIMARY KEY,
     Username TEXT NOT NULL,
-    Password TEXT NOT NULL
+    Password TEXT NOT NULL,
+    Salt TEXT NOT NULL
 );
 
 CREATE TABLE Sessions (

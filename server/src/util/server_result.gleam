@@ -1,3 +1,4 @@
+import gleam/io
 import gleam/result
 
 import simplifile
@@ -17,8 +18,10 @@ pub fn try(
   use converted <- result.then(
     res
     |> result.map_error(err_convert)
-    |> result.map_error(fn(str) { prefix <> ": " <> str }),
+    |> result.map_error(fn(str) { prefix <> ": " <> str })
+    |> result.map_error(fn(str) { io.println_error(str) str })
   )
+
   then(converted)
 }
 
