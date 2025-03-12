@@ -12,6 +12,7 @@ import sqlight.{type Connection}
 import util/decode as dec
 import util/parser.{type Parser} as p
 import util/prim
+import util/server_result.{try, fs_try, sql_try}
 
 type Migration {
   Migration(id: Int, name: String, full_name: String)
@@ -147,31 +148,4 @@ pub fn migrate_database(
   )
 
   Ok(Nil)
-}
-
-fn describe_sqlight_error(error: sqlight.Error) -> String {
-  let sqlight.SqlightError(message:, ..) = error
-  message
-}
-
-fn try(
-  res: Result(a, b),
-  prefix: String,
-  err_convert: fn(b) -> String,
-  then: fn(a) -> Result(c, String),
-) -> Result(c, String) {
-  use converted <- result.then(
-    res
-    |> result.map_error(err_convert)
-    |> result.map_error(fn(str) { prefix <> ": " <> str }),
-  )
-  then(converted)
-}
-
-fn sql_try(res, prefix, then) {
-  try(res, prefix, describe_sqlight_error, then)
-}
-
-fn fs_try(res, prefix, then) {
-  try(res, prefix, simplifile.describe_error, then)
 }

@@ -1,25 +1,11 @@
 import gleam/dynamic
 import gleam/dynamic/decode
-import gleam/list
 import gleam/result
 
 import lustre/attribute
 import lustre/event
 
-/// Helper to convert errors from gleam/dynamic/decode back to gleam/dynamic, so Lustre understands it.
-fn downgrade_error(
-  res: Result(a, List(decode.DecodeError)),
-) -> Result(a, List(dynamic.DecodeError)) {
-  let map_err = fn(e: decode.DecodeError) {
-    dynamic.DecodeError(e.expected, e.found, e.path)
-  }
-  result.map_error(res, list.map(_, map_err))
-}
-
-// Helper to convert a decoder from gleam/dynamic/decode back to gleam/dynamic, so Lustre understands it.
-fn downgrade_decoder(decoder: decode.Decoder(a)) -> dynamic.Decoder(a) {
-  fn(input: dynamic.Dynamic) { decode.run(input, decoder) |> downgrade_error }
-}
+import util/decode as dec
 
 /// Indicates which modiers were pressed during an event.
 pub type ModifierState {
@@ -47,7 +33,7 @@ fn modifier_state_key_decoder(
       use key <- decode.field("key", decode.string)
       #(ms, key) |> decode.success
     }
-    |> downgrade_decoder
+    |> dec.downgrade_decoder
 
   fn(input) {
     use decode_result <- result.try(decoder(input))
@@ -69,7 +55,7 @@ pub fn on_click_mod(
       use ms <- decode.then(modifier_state_decoder())
       to_msg(ms) |> decode.success
     }
-    |> downgrade_decoder
+    |> dec.downgrade_decoder
 
   event.on("click", decoder)
 }

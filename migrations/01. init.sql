@@ -10,3 +10,10 @@ CREATE TABLE Users (
     Username TEXT NOT NULL,
     Password TEXT NOT NULL
 );
+
+CREATE TABLE Sessions (
+    UserId INTEGER NOT NULL,
+    SessionId TEXT NOT NULL,
+    ExpiresAt TEXT NOT NULL,
+    PRIMARY KEY (UserId, SessionId)
+);

@@ -3,10 +3,10 @@ import gleam/io
 import gleam/result
 
 import mist
-import sqlight
 import wisp
 import wisp/wisp_mist
 
+import api
 import db_migrate
 import util/prim
 
@@ -28,15 +28,12 @@ pub fn middleware(
 }
 
 fn handle_request(req: wisp.Request, conn_str: String) -> wisp.Response {
-  use _req <- middleware(req)
+  use req <- middleware(req)
 
-  use _conn <- sqlight.with_connection(conn_str)
-  wisp.not_found() |> wisp.string_body("Not found!")
-}
-
-/// A context containing information to be used by handlers.
-pub type Context {
-  Context(db_conn: sqlight.Connection)
+  case wisp.path_segments(req) {
+    ["api", ..] -> api.handler(req, conn_str)
+    _ -> wisp.not_found() |> wisp.string_body("Not found.")
+  }
 }
 
 pub fn main() {
