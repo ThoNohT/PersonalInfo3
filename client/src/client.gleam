@@ -34,7 +34,7 @@ pub fn main() {
 fn init(_) {
   #(
     Loading,
-    http.get("http://localhost:5500/state.txt", http.expect_text(LoadState)),
+    http.get("http://localhost:5500/static/state.txt", http.expect_text(LoadState)),
   )
 }
 
