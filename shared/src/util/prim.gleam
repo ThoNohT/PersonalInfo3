@@ -2,11 +2,19 @@ import gleam/option.{type Option}
 import gleam/order.{type Order, Eq}
 import gleam/result
 
-/// A very generic version of option.then and result.try.
+/// A very generic version of option.then.
 pub fn then(default: b, option: Option(a), apply fun: fn(a) -> b) -> b {
   case option {
     option.None -> default
     option.Some(val) -> fun(val)
+  }
+}
+
+/// A very generic version of result.try.
+pub fn try(default: c, res: Result(a, b), apply fun: fn(a) -> c) -> c {
+  case res {
+    Error(_) -> default
+    Ok(val) -> fun(val)
   }
 }
 
