@@ -1,13 +1,16 @@
 import gleam/dynamic/decode
 import gleam/http
-import gleam/string_tree
+import gleam/json
 
+import birl
+import birl/duration
 import sqlight
 import wisp
 
+import util/prim
+import util/random
 import model
 import repository
-import util/prim
 
 pub fn handler(req: wisp.Request, conn_str: String) -> wisp.Response {
   // The route should start with "api/", or this function should not be called.
@@ -46,6 +49,19 @@ fn login(req: wisp.Request, conn_str: String) -> wisp.Response {
     user.password_hash == model.hash_password(creds.1, user),
   )
 
-  // TODO: Insert session, cleanup session, return session id.
-  wisp.json_response(string_tree.from_string(""), 200)
+  repository.clear_expired_sessions(conn)
+
+  // Store session.
+  let session_id = random.ascii_string(128)
+  let expires_at = birl.add(birl.now(), duration.hours(6))
+  use _ <- prim.try(
+    wisp.internal_server_error(),
+    repository.add_session(conn, user, session_id, expires_at)
+  )
+
+  let body = json.object(
+    [ #("session_id", json.string(session_id))
+    , #("expires_at", json.string(prim.date_time_string(expires_at)))
+    ])
+  wisp.json_response(json.to_string_tree(body), 200)
 }

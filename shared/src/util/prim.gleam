@@ -2,6 +2,8 @@ import gleam/option.{type Option}
 import gleam/order.{type Order, Eq}
 import gleam/result
 
+import birl
+
 /// A very generic version of option.then.
 pub fn then(default: b, option: Option(a), apply fun: fn(a) -> b) -> b {
   case option {
@@ -39,4 +41,9 @@ pub fn compare_try(order: Order, apply fun: fn() -> Order) -> Order {
 pub fn res(res: Result(a, b), apply fun: fn() -> Result(c, b)) -> Result(c, b) {
   use _ <- result.try(res)
   fun()
+}
+
+/// Converts a time into a date + time string.
+pub fn date_time_string(time: birl.Time) {
+  birl.to_naive_date_string(time) <> " " <> birl.to_naive_time_string(time)
 }
