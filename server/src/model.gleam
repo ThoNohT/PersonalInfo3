@@ -1,26 +1,28 @@
-import gleam/dynamic/decode.{type Decoder}
 import gleam/bit_array
 import gleam/crypto
+import gleam/dynamic/decode.{type Decoder}
 
 pub type User {
-  User(id: Int, username: String, salt: String, password_hash: String)
+  User(id: Int, username: String, salt: String, password_hash: BitArray)
 }
 
 pub fn user_decoder() -> Decoder(User) {
   use id <- decode.field(0, decode.int)
   use username <- decode.field(1, decode.string)
-  use password_hash <- decode.field(2, decode.string)
+  use password_hash <- decode.field(2, decode.bit_array)
   use salt <- decode.field(3, decode.string)
 
   decode.success(User(id:, username:, password_hash:, salt:))
 }
 
-import gleam/io
 /// Hashes a password.
-pub fn hash_password(password: String, user: User) -> String {
-  io.println_error("Calculating: " <> password <> " - " <> user.salt)
+pub fn hash_password(password: String, user: User) -> BitArray {
   { password <> user.salt }
   |> bit_array.from_string
   |> crypto.hash(crypto.Sha512, _)
-  |> bit_array.base64_encode(True)
+}
+
+/// Checks the provided password against the user's password hash.
+pub fn check_password(password: String, user: User) -> Bool {
+  crypto.secure_compare(hash_password(password, user), user.password_hash)
 }
