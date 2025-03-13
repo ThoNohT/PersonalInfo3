@@ -12,7 +12,7 @@ import sqlight.{type Connection}
 import util/decode as dec
 import util/parser.{type Parser} as p
 import util/prim
-import util/server_result.{try, fs_try, sql_try}
+import util/server_result.{fs_try, sql_try, try}
 
 type Migration {
   Migration(id: Int, name: String, full_name: String)
@@ -80,7 +80,7 @@ fn run_migration(
       let params = [
         sqlight.int(migration.id),
         sqlight.text(migration.name),
-        sqlight.text(birl.to_time_string(birl.now())),
+        sqlight.text(prim.date_time_string(birl.now())),
       ]
       use _ <- sql_try(
         sqlight.query(sql, conn, params, decode.int),
