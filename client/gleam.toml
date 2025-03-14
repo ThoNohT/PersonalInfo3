@@ -6,7 +6,7 @@ target = "javascript"
 
 [dependencies]
 gleam_stdlib = ">= 0.44.0 and < 2.0.0"
-lustre = ">= 4.6.3 and < 5.0.0"
+lustre = ">= 4.6.4 and < 5.0.0"
 birl = ">= 1.8.0 and < 2.0.0"
 lustre_http = ">= 0.7.0 and < 1.0.0"
 personalinfo3_shared = { path = "../shared" }
