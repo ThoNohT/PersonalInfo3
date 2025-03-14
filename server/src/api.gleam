@@ -4,10 +4,10 @@ import gleam/json
 
 import birl
 import birl/duration
-import sqlight
 import wisp
 
 import util/prim
+import util/db
 import util/random
 import util/handler_helpers as hh
 import model.{type Context}
@@ -37,7 +37,7 @@ fn login(req: wisp.Request, conn_str: String) -> wisp.Response {
 
   use creds <- hh.decode_body(wisp.bad_request(), req, login_decoder())
 
-  use conn <- sqlight.with_connection(conn_str)
+  use conn <- db.with_connection(conn_str, True)
   use user <- prim.try(
     wisp.internal_server_error(),
     repository.get_user(conn, creds.0),
@@ -58,6 +58,8 @@ fn login(req: wisp.Request, conn_str: String) -> wisp.Response {
     repository.add_session(conn, user, session_id, expires_at),
   )
 
+  use <- db.commit(conn)
+
   let body =
     json.object([
       #("session_id", json.string(session_id)),
@@ -74,11 +76,12 @@ fn init_user(req: wisp.Request, context: Context) -> wisp.Response {
   use input_secret <- hh.require_header(wisp.response(401), req, "secret")
   use <- prim.check(wisp.response(401), secret == input_secret)
 
-  // There must still be no users in the database.
-  use conn <- sqlight.with_connection(context.conn_str)
-  use _ <- prim.try(wisp.response(401), repository.can_init(conn))
-
   use creds <- hh.decode_body(wisp.bad_request(), req, login_decoder())
+
+  // There must still be no users in the database.
+  use conn <- db.with_connection(context.conn_str, True)
+  use can_init <- prim.try(wisp.internal_server_error(), repository.can_init(conn))
+  use <- prim.check(wisp.response(401), can_init)
 
   let salt = random.ascii_string(32)
   let password = model.hash_password(creds.1, salt)
@@ -86,6 +89,8 @@ fn init_user(req: wisp.Request, context: Context) -> wisp.Response {
     wisp.internal_server_error(),
     repository.create_user(conn, creds.0, password, salt)
   )
+
+  use <- db.commit(conn)
 
   wisp.ok()
 }

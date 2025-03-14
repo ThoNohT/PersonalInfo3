@@ -9,9 +9,10 @@ import birl
 import simplifile
 import sqlight.{type Connection}
 
+import util/prim
 import util/decode as dec
 import util/parser.{type Parser} as p
-import util/prim
+import util/db
 import util/server_result.{fs_try, sql_try, try}
 
 type Migration {
@@ -135,7 +136,7 @@ pub fn migrate_database(
   migrations_path: String,
 ) -> Result(Nil, String) {
   io.println("Running database migrations...")
-  use conn <- sqlight.with_connection(conn_str)
+  use conn <- db.with_connection(conn_str, True)
   use <- prim.res(create_history_table(conn))
   use migration_files <- result.try(get_migration_files(migrations_path))
   use applied_migrations <- result.try(get_applied_migrations(conn))
@@ -146,6 +147,7 @@ pub fn migrate_database(
     |> list.map(run_migration(conn, _, applied_migrations))
     |> result.all,
   )
+  use <- db.commit(conn)
 
   Ok(Nil)
 }
