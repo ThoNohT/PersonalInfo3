@@ -16,7 +16,8 @@ pub fn handler(req: wisp.Request, context: Context) -> wisp.Response {
   // The route should start with "api/", or this function should not be called.
   let assert ["api", ..path] = wisp.path_segments(req)
   case path {
-    ["login"] -> login(req, context.conn_str)
+    ["user", "login"] -> login(req, context.conn_str)
+    ["user", "logout"] -> logout(req, context.conn_str)
     ["user", "init"] -> init_user(req, context)
     _ -> wisp.not_found() |> wisp.string_body("Not found!")
   }
@@ -29,7 +30,7 @@ fn login(req: wisp.Request, conn_str: String) -> wisp.Response {
   use creds <- hh.decode_body(400, req, model.credentials_decoder())
 
   use conn <- db.with_connection(conn_str, True)
-  use user <- hh.try(50, repository.get_user(conn, creds.username))
+  use user <- hh.try(500, repository.get_user(conn, creds.username))
   // If not found, return 401 unauthorized.
   use user <- hh.then(401, user)
 
@@ -41,7 +42,10 @@ fn login(req: wisp.Request, conn_str: String) -> wisp.Response {
   // Store session.
   let session_id = random.ascii_string(128)
   let expires_at = birl.add(birl.utc_now(), duration.hours(6))
-  use _ <- hh.try(500, repository.add_session(conn, user, session_id, expires_at))
+  use _ <- hh.try(
+    500,
+    repository.add_session(conn, user, session_id, expires_at),
+  )
 
   use <- db.commit(conn)
 
@@ -53,6 +57,19 @@ fn login(req: wisp.Request, conn_str: String) -> wisp.Response {
   wisp.json_response(json.to_string_tree(body), 200)
 }
 
+// Attempts to login the user.
+fn logout(req: wisp.Request, conn_str: String) -> wisp.Response {
+  use <- wisp.require_method(req, http.Post)
+  use token <- hh.require_header(401, req, "authorization")
+
+  use conn <- db.with_connection(conn_str, True)
+  repository.remove_session(conn, token)
+  use <- db.commit(conn)
+
+  wisp.ok()
+}
+
+// Creates an initial user, if there are no users in the database yet.
 fn init_user(req: wisp.Request, context: Context) -> wisp.Response {
   use <- wisp.require_method(req, http.Post)
 
@@ -70,7 +87,10 @@ fn init_user(req: wisp.Request, context: Context) -> wisp.Response {
 
   let salt = random.ascii_string(32)
   let password_hash = model.hash_password(creds.password, salt)
-  use _ <- hh.try(500, repository.create_user(conn, creds.username, password_hash, salt))
+  use _ <- hh.try(
+    500,
+    repository.create_user(conn, creds.username, password_hash, salt),
+  )
 
   use <- db.commit(conn)
 

@@ -92,3 +92,14 @@ pub fn create_user(
   )
   Ok(Nil)
 }
+
+/// Removes the specified session.
+pub fn remove_session(conn: Connection, token: String) {
+  let sql = "DELETE FROM Sessions WHERE SessionId = ?"
+  let param = [ sqlight.text(token) ]
+  use <- sql_do(
+    sqlight.query(sql, conn, param, decode.int),
+    "Could not delete a session."
+  )
+  Nil
+}
