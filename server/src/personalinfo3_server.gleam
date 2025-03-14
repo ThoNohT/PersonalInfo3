@@ -1,14 +1,19 @@
 import gleam/erlang/process
 import gleam/io
+import gleam/option.{Some, None}
 import gleam/result
 
 import mist
+import sqlight
 import wisp
 import wisp/wisp_mist
 
-import api
-import db_migrate
 import util/prim
+import util/random
+import api
+import model.{type Context, Context}
+import db_migrate
+import repository
 
 pub fn middleware(
   req: wisp.Request,
@@ -27,11 +32,11 @@ pub fn middleware(
   }
 }
 
-fn handle_request(req: wisp.Request, conn_str: String) -> wisp.Response {
+fn handle_request(req: wisp.Request, context: Context) -> wisp.Response {
   use req <- middleware(req)
 
   case wisp.path_segments(req) {
-    ["api", ..] -> api.handler(req, conn_str)
+    ["api", ..] -> api.handler(req, context)
     _ -> wisp.not_found() |> wisp.string_body("Not found.")
   }
 }
@@ -47,7 +52,24 @@ pub fn main() {
     |> result.map_error(io.println_error),
   )
 
-  let handle_request = handle_request(_, conn_str)
+  let context = {
+    use conn <- sqlight.with_connection(conn_str)
+    let assert Ok(can_init) = repository.can_init(conn)
+    let secret_key = case can_init {
+      False -> None
+      True -> {
+        let secret = random.ascii_string(32)
+        io.println("There are no users in the database yet.")
+        io.println("You can use the following key to create the first user:")
+        io.println("\"" <> secret <> "\"")
+        io.println("")
+        secret |> Some
+      }
+    }
+    Context(conn_str, secret_key)
+  }
+
+  let handle_request = handle_request(_, context)
 
   // Start the Mist web server.
   let assert Ok(_) =
