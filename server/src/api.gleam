@@ -1,4 +1,3 @@
-import gleam/dynamic/decode
 import gleam/http
 import gleam/json
 
@@ -6,27 +5,19 @@ import birl
 import birl/duration
 import wisp
 
-import util/prim
-import util/db
-import util/random
-import util/handler_helpers as hh
 import model.{type Context}
 import repository
-
-// Creates a decoder for a user's login information.
-fn login_decoder() {
-  use username <- decode.field("username", decode.string)
-  use password <- decode.field("password", decode.string)
-
-  decode.success(#(username, password))
-}
+import util/db
+import util/handler_helpers as hh
+import util/prim
+import util/random
 
 pub fn handler(req: wisp.Request, context: Context) -> wisp.Response {
   // The route should start with "api/", or this function should not be called.
   let assert ["api", ..path] = wisp.path_segments(req)
   case path {
     ["login"] -> login(req, context.conn_str)
-    ["user", "init" ] -> init_user(req, context)
+    ["user", "init"] -> init_user(req, context)
     _ -> wisp.not_found() |> wisp.string_body("Not found!")
   }
 }
@@ -35,18 +26,18 @@ pub fn handler(req: wisp.Request, context: Context) -> wisp.Response {
 fn login(req: wisp.Request, conn_str: String) -> wisp.Response {
   use <- wisp.require_method(req, http.Post)
 
-  use creds <- hh.decode_body(wisp.bad_request(), req, login_decoder())
+  use creds <- hh.decode_body(wisp.bad_request(), req, model.credentials_decoder())
 
   use conn <- db.with_connection(conn_str, True)
   use user <- prim.try(
     wisp.internal_server_error(),
-    repository.get_user(conn, creds.0),
+    repository.get_user(conn, creds.username),
   )
   // If not found, return 401 unauthorized.
   use user <- prim.then(wisp.response(401), user)
 
   // Check password
-  use <- prim.check(wisp.response(401), model.check_password(creds.1, user))
+  use <- prim.check(wisp.response(401), model.check_password(creds.password, user))
 
   repository.clear_expired_sessions(conn)
 
@@ -76,18 +67,21 @@ fn init_user(req: wisp.Request, context: Context) -> wisp.Response {
   use input_secret <- hh.require_header(wisp.response(401), req, "secret")
   use <- prim.check(wisp.response(401), secret == input_secret)
 
-  use creds <- hh.decode_body(wisp.bad_request(), req, login_decoder())
+  use creds <- hh.decode_body(wisp.bad_request(), req, model.credentials_decoder())
 
   // There must still be no users in the database.
   use conn <- db.with_connection(context.conn_str, True)
-  use can_init <- prim.try(wisp.internal_server_error(), repository.can_init(conn))
+  use can_init <- prim.try(
+    wisp.internal_server_error(),
+    repository.can_init(conn),
+  )
   use <- prim.check(wisp.response(401), can_init)
 
   let salt = random.ascii_string(32)
-  let password = model.hash_password(creds.1, salt)
+  let password_hash = model.hash_password(creds.password, salt)
   use _ <- prim.try(
     wisp.internal_server_error(),
-    repository.create_user(conn, creds.0, password, salt)
+    repository.create_user(conn, creds.username, password_hash, salt),
   )
 
   use <- db.commit(conn)
