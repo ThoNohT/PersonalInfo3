@@ -4,9 +4,9 @@ import gleam/option.{type Option, None, Some}
 import birl.{type Time}
 import sqlight.{type Connection}
 
-import util/prim
-import util/server_result.{sql_try, sql_do}
 import model.{type User, User}
+import util/prim
+import util/server_result.{sql_do, sql_try}
 
 /// Retrieves the user with the specified username from the database.
 pub fn get_user(
@@ -29,19 +29,29 @@ pub fn get_user(
 /// Clears all sessions that are expired.
 pub fn clear_expired_sessions(conn: Connection) {
   let sql = "DELETE FROM Sessions WHERE ExpiresAt <= ?"
-  let param = [sqlight.text(prim.date_time_string(birl.now()))]
+  let param = [sqlight.text(prim.date_time_string(birl.utc_now()))]
   use <- sql_do(
     sqlight.query(sql, conn, param, decode.int),
     "Could not clear expired sessions.",
   )
 
-  Nil 
+  Nil
 }
 
 /// Adds a new session for the specified user.
-pub fn add_session(conn: Connection, user: User, session_id: String, expires_at: Time) -> Result(Nil, String) {
-  let sql = "INSERT INTO Sessions (UserId, SessionId, ExpiresAt) VALUES (?, ?, ?)"
-  let param = [sqlight.int(user.id), sqlight.text(session_id), sqlight.text(prim.date_time_string(expires_at)) ]
+pub fn add_session(
+  conn: Connection,
+  user: User,
+  session_id: String,
+  expires_at: Time,
+) -> Result(Nil, String) {
+  let sql =
+    "INSERT INTO Sessions (UserId, SessionId, ExpiresAt) VALUES (?, ?, ?)"
+  let param = [
+    sqlight.int(user.id),
+    sqlight.text(session_id),
+    sqlight.text(prim.date_time_string(expires_at)),
+  ]
   use _ <- sql_try(
     sqlight.query(sql, conn, param, decode.int),
     "Could not add new session.",
