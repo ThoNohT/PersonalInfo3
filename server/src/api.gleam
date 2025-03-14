@@ -13,6 +13,14 @@ import util/handler_helpers as hh
 import model.{type Context}
 import repository
 
+// Creates a decoder for a user's login information.
+fn login_decoder() {
+  use username <- decode.field("username", decode.string)
+  use password <- decode.field("password", decode.string)
+
+  decode.success(#(username, password))
+}
+
 pub fn handler(req: wisp.Request, context: Context) -> wisp.Response {
   // The route should start with "api/", or this function should not be called.
   let assert ["api", ..path] = wisp.path_segments(req)
@@ -27,15 +35,7 @@ pub fn handler(req: wisp.Request, context: Context) -> wisp.Response {
 fn login(req: wisp.Request, conn_str: String) -> wisp.Response {
   use <- wisp.require_method(req, http.Post)
 
-  let login_decoder = {
-    use username <- decode.field("username", decode.string)
-    use password <- decode.field("password", decode.string)
-
-    decode.success(#(username, password))
-  }
-
-  use body <- wisp.require_json(req)
-  use creds <- prim.try(wisp.bad_request(), decode.run(body, login_decoder))
+  use creds <- hh.decode_body(wisp.bad_request(), req, login_decoder())
 
   use conn <- sqlight.with_connection(conn_str)
   use user <- prim.try(
@@ -78,14 +78,7 @@ fn init_user(req: wisp.Request, context: Context) -> wisp.Response {
   use conn <- sqlight.with_connection(context.conn_str)
   use _ <- prim.try(wisp.response(401), repository.can_init(conn))
 
-  let login_decoder = {
-    use username <- decode.field("username", decode.string)
-    use password <- decode.field("password", decode.string)
-
-    decode.success(#(username, password))
-  }
-  use body <- wisp.require_json(req)
-  use creds <- prim.try(wisp.bad_request(), decode.run(body, login_decoder))
+  use creds <- hh.decode_body(wisp.bad_request(), req, login_decoder())
 
   let salt = random.ascii_string(32)
   let password = model.hash_password(creds.1, salt)
