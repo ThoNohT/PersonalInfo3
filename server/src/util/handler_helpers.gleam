@@ -1,3 +1,4 @@
+import gleam/dynamic/decode.{type Decoder}
 import gleam/list
 
 import util/prim
@@ -17,4 +18,17 @@ pub fn require_header(
   )
 
   then(header.1)
+}
+
+/// Requires a json body, and runs the provided decoder on it,
+/// failing with the provided failure if the decoder failed.
+pub fn decode_body(
+  on_failure: Response,
+  req: Request,
+  decoder: Decoder(a),
+  then: fn(a) -> Response
+) -> Response {
+  use body <- wisp.require_json(req)
+  use result <- prim.try(on_failure, decode.run(body, decoder))
+  then(result)
 }
