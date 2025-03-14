@@ -5,6 +5,7 @@ import birl.{type Time}
 import sqlight.{type Connection}
 
 import model.{type User, User}
+import util/decode as dec
 import util/prim
 import util/server_result.{sql_do, sql_try}
 
@@ -57,5 +58,37 @@ pub fn add_session(
     "Could not add new session.",
   )
 
+  Ok(Nil)
+}
+
+/// Checks if the system can be initialized, allowing one user to be
+/// made with a random string generated at startup.
+/// This can be done only if there are no users yet, so no user has to be made manually.
+pub fn can_init(conn: Connection) -> Result(Bool, String) {
+  let sql = "SELECT COUNT(0) FROM Users"
+  use count <- sql_try(
+    sqlight.query(sql, conn, [], dec.one(decode.int)),
+    "Could not determine the number of users.",
+  )
+  Ok(count == [0])
+}
+
+/// Adds a new user to the database.
+pub fn create_user(
+  conn: Connection,
+  username: String,
+  password: BitArray,
+  salt: String,
+) -> Result(Nil, String) {
+  let sql = "INSERT INTO Users (Username, Password, Salt) VALUES (?, ?, ?)"
+  let param = [
+    sqlight.text(username),
+    sqlight.blob(password),
+    sqlight.text(salt),
+  ]
+  use _ <- sql_try(
+    sqlight.query(sql, conn, param, decode.int),
+    "Could not add new session.",
+  )
   Ok(Nil)
 }
