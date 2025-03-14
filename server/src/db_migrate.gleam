@@ -80,7 +80,7 @@ fn run_migration(
       let params = [
         sqlight.int(migration.id),
         sqlight.text(migration.name),
-        sqlight.text(prim.date_time_string(birl.now())),
+        sqlight.text(prim.date_time_string(birl.utc_now())),
       ]
       use _ <- sql_try(
         sqlight.query(sql, conn, params, decode.int),
