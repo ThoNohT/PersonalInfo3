@@ -1,5 +1,7 @@
+import gleam/bit_array
 import gleam/http
 import gleam/json
+import gleam/option
 
 import birl
 import birl/duration
@@ -12,13 +14,18 @@ import util/handler_helpers as hh
 import util/prim
 import util/random
 
-pub fn handler(req: wisp.Request, context: Context) -> wisp.Response {
+pub fn handler(req: wisp.Request, ctx: Context) -> wisp.Response {
   // The route should start with "api/", or this function should not be called.
   let assert ["api", ..path] = wisp.path_segments(req)
   case path {
-    ["user", "login"] -> login(req, context.conn_str)
-    ["user", "logout"] -> logout(req, context.conn_str)
-    ["user", "init"] -> init_user(req, context)
+    // User functions
+    ["user", "login"] -> login(req, ctx.conn_str)
+    ["user", "logout"] -> logout(req, ctx.conn_str)
+    ["user", "init"] -> init_user(req, ctx)
+
+    // Simple state functions.
+    ["simplestate", key] -> load_or_save_simple_state(req, ctx.conn_str, key)
+
     _ -> wisp.not_found() |> wisp.string_body("Not found!")
   }
 }
@@ -94,5 +101,54 @@ fn init_user(req: wisp.Request, context: Context) -> wisp.Response {
 
   use <- db.commit(conn)
 
+  wisp.ok()
+}
+
+/// Loads or save simple state, based on the method.
+fn load_or_save_simple_state(
+  req: wisp.Request,
+  conn_str: String,
+  key: String,
+) -> wisp.Response {
+  case req.method {
+    http.Get -> load_simple_state(req, conn_str, key)
+    http.Put -> save_simple_state(req, conn_str, key)
+    _ -> wisp.method_not_allowed(allowed: [http.Get, http.Put])
+  }
+}
+
+fn load_simple_state(
+  req: wisp.Request,
+  conn_str: String,
+  key: String,
+) -> wisp.Response {
+  use token <- hh.require_header(401, req, "authorization")
+
+  use conn <- db.with_connection(conn_str, False)
+  use user_id <- hh.try(500, repository.find_user_from_session(conn, token))
+  use user_id <- hh.then(401, user_id)
+
+  use state <- hh.try(500, repository.try_get_simple_state(conn, user_id, key))
+  use text <- hh.try(500, bit_array.to_string(option.unwrap(state, <<>>)))
+
+  wisp.ok() |> wisp.string_body(text)
+}
+
+fn save_simple_state(
+  req: wisp.Request,
+  conn_str: String,
+  key: String,
+) -> wisp.Response {
+  use token <- hh.require_header(401, req, "authorization")
+
+  use conn <- db.with_connection(conn_str, True)
+  use user_id <- hh.try(500, repository.find_user_from_session(conn, token))
+  use user_id <- hh.then(401, user_id)
+
+  use value <- hh.try(400, wisp.read_body_to_bitstring(req))
+
+  use _ <- hh.try(500, repository.set_simple_state(conn, user_id, key, value))
+
+  use <- db.commit(conn)
   wisp.ok()
 }

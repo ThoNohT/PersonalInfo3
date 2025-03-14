@@ -6,6 +6,7 @@ import sqlight.{type Connection}
 
 import model.{type User, User}
 import util/decode as dec
+import util/option as opt
 import util/prim
 import util/server_result.{sql_do, sql_try}
 
@@ -96,10 +97,82 @@ pub fn create_user(
 /// Removes the specified session.
 pub fn remove_session(conn: Connection, token: String) {
   let sql = "DELETE FROM Sessions WHERE SessionId = ?"
-  let param = [ sqlight.text(token) ]
+  let param = [sqlight.text(token)]
   use <- sql_do(
     sqlight.query(sql, conn, param, decode.int),
-    "Could not delete a session."
+    "Could not delete a session.",
   )
   Nil
+}
+
+/// Tries to find a user with the specified session id.
+/// Returns None if no session with this identifier was found.
+pub fn find_user_from_session(
+  conn: Connection,
+  token: String,
+) -> Result(Option(Int), String) {
+  let sql =
+    "
+SELECT u.UserId FROM Users u
+INNER JOIN Sessions s
+ON u.UserId = s.UserId
+WHERE s.SessionId = ? AND s.ExpiresAt > ?"
+  let param = [
+    sqlight.text(token),
+    sqlight.text(prim.date_time_string(birl.now())),
+  ]
+
+  use user <- sql_try(
+    sqlight.query(sql, conn, param, dec.one(decode.int)),
+    "could not load session for user.",
+  )
+
+  opt.head(user) |> Ok
+}
+
+/// Tries to find the state for the specified user and key.
+/// Returns None if not found.
+pub fn try_get_simple_state(
+  conn: Connection,
+  user_id: Int,
+  key: String,
+) -> Result(Option(BitArray), String) {
+  let sql = "SELECT VALUE FROM SimpleState WHERE UserId = ? AND Key = ?"
+  let param = [sqlight.int(user_id), sqlight.text(key)]
+
+  use value <- sql_try(
+    sqlight.query(sql, conn, param, dec.one(decode.bit_array)),
+    "Could not load simple state.",
+  )
+
+  opt.head(value) |> Ok
+}
+
+/// Sets the state for the specified user and key. If it was already present, it is updated.
+pub fn set_simple_state(
+  conn: Connection,
+  user_id: Int,
+  key: String,
+  value: BitArray,
+) -> Result(Nil, String) {
+  let sql =
+    "
+INSERT INTO SimpleState (UserId, Key, Value) VALUES (?, ?, ?)
+ON CONFLICT (UserId, Key) DO UPDATE SET Value = ?
+WHERE UserId = ? AND Key = ?"
+  let param = [
+    sqlight.int(user_id),
+    sqlight.text(key),
+    sqlight.blob(value),
+    sqlight.blob(value),
+    sqlight.int(user_id),
+    sqlight.text(key),
+  ]
+
+  use _ <- sql_try(
+    sqlight.query(sql, conn, param, dec.one(decode.int)),
+    "Could not set simple state.",
+  )
+
+  Ok(Nil)
 }
