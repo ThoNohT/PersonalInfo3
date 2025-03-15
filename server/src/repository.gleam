@@ -1,7 +1,8 @@
+import shared_model
 import gleam/dynamic/decode
 import gleam/option.{type Option, None, Some}
 
-import birl.{type Time}
+import birl
 import sqlight.{type Connection}
 
 import model.{type User, User}
@@ -44,15 +45,14 @@ pub fn clear_expired_sessions(conn: Connection) {
 pub fn add_session(
   conn: Connection,
   user: User,
-  session_id: String,
-  expires_at: Time,
+  session_info: shared_model.SessionInfo,
 ) -> Result(Nil, String) {
   let sql =
     "INSERT INTO Sessions (UserId, SessionId, ExpiresAt) VALUES (?, ?, ?)"
   let param = [
     sqlight.int(user.id),
-    sqlight.text(session_id),
-    sqlight.text(prim.date_time_string(expires_at)),
+    sqlight.text(session_info.session_id),
+    sqlight.text(prim.date_time_string(session_info.expires_at)),
   ]
   use _ <- sql_try(
     sqlight.query(sql, conn, param, decode.int),

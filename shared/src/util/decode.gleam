@@ -21,7 +21,16 @@ pub fn downgrade_error(
   result.map_error(res, list.map(_, map_err))
 }
 
-// Helper to convert a decoder from gleam/dynamic/decode back to gleam/dynamic, so Lustre understands it.
+/// Helper to convert a decoder from gleam/dynamic/decode back to gleam/dynamic, so Lustre understands it.
 pub fn downgrade_decoder(decoder: d.Decoder(a)) -> dynamic.Decoder(a) {
   fn(input: dynamic.Dynamic) { d.run(input, decoder) |> downgrade_error }
+}
+
+/// Converts a result into a decoder.
+/// decode.failure requires a zero element, so one must be passed to this function as well.
+pub fn from_result(res: Result(a, b), zero: a) -> d.Decoder(a) {
+  case res {
+    Ok(a) -> d.success(a)
+    Error(_) -> d.failure(zero, "Result")
+  }
 }

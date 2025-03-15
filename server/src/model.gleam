@@ -20,19 +20,6 @@ pub fn user_decoder() -> Decoder(User) {
   decode.success(User(id:, username:, password_hash:, salt:))
 }
 
-/// Credentials, provided by the client.
-pub type Credentials {
-  Credentials(username: String, password: String)
-}
-
-/// A decoder for credentials.
-pub fn credentials_decoder() -> Decoder(Credentials) {
-  use username <- decode.field("username", decode.string)
-  use password <- decode.field("password", decode.string)
-
-  decode.success(Credentials(username, password))
-}
-
 /// Hashes a password.
 pub fn hash_password(password: String, salt: String) -> BitArray {
   { password <> salt }

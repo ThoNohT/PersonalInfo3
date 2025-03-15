@@ -2,6 +2,7 @@ import gleam/bit_array
 import gleam/http
 import gleam/json
 import gleam/option
+import shared_model
 
 import birl
 import birl/duration
@@ -11,7 +12,6 @@ import model.{type Context}
 import repository
 import util/db
 import util/handler_helpers as hh
-import util/prim
 import util/random
 
 pub fn handler(req: wisp.Request, ctx: Context) -> wisp.Response {
@@ -34,7 +34,7 @@ pub fn handler(req: wisp.Request, ctx: Context) -> wisp.Response {
 fn login(req: wisp.Request, conn_str: String) -> wisp.Response {
   use <- wisp.require_method(req, http.Post)
 
-  use creds <- hh.decode_body(400, req, model.credentials_decoder())
+  use creds <- hh.decode_body(400, req, shared_model.credentials_decoder())
 
   use conn <- db.with_connection(conn_str, True)
   use user <- hh.try(500, repository.get_user(conn, creds.username))
@@ -47,20 +47,16 @@ fn login(req: wisp.Request, conn_str: String) -> wisp.Response {
   repository.clear_expired_sessions(conn)
 
   // Store session.
-  let session_id = random.ascii_string(128)
-  let expires_at = birl.add(birl.utc_now(), duration.hours(6))
-  use _ <- hh.try(
-    500,
-    repository.add_session(conn, user, session_id, expires_at),
-  )
+  let session_info =
+    shared_model.SessionInfo(
+      session_id: random.ascii_string(128),
+      expires_at: birl.add(birl.utc_now(), duration.hours(6)),
+    )
+  use _ <- hh.try(500, repository.add_session(conn, user, session_info))
 
   use <- db.commit(conn)
 
-  let body =
-    json.object([
-      #("session_id", json.string(session_id)),
-      #("expires_at", json.string(prim.date_time_string(expires_at))),
-    ])
+  let body = shared_model.encode_session_info(session_info)
   wisp.json_response(json.to_string_tree(body), 200)
 }
 
@@ -85,7 +81,7 @@ fn init_user(req: wisp.Request, context: Context) -> wisp.Response {
   use input_secret <- hh.require_header(401, req, "secret")
   use <- hh.check(401, secret == input_secret)
 
-  use creds <- hh.decode_body(400, req, model.credentials_decoder())
+  use creds <- hh.decode_body(400, req, shared_model.credentials_decoder())
 
   // There must still be no users in the database.
   use conn <- db.with_connection(context.conn_str, True)
