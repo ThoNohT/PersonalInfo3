@@ -10,6 +10,7 @@ import util/duration.{type Duration, Duration}
 import util/numbers.{Pos}
 import util/prim
 import util/time.{type Time, Time}
+import shared_model.{type Credentials, type SessionInfo}
 
 pub type Validated(a) {
   Validated(input: String, parsed: Option(a))
@@ -135,7 +136,7 @@ pub type SettingsState {
 }
 
 pub type Model {
-  Loading
+  Login(credentials: Credentials)
   Err(String)
   Loaded(state: State)
   Settings(state: State, settings: SettingsState)
@@ -251,6 +252,10 @@ pub type MoveDirection {
 
 pub type Msg {
   NoOp
+  UsernameChanged(new_username: String)
+  PasswordChanged(new_password: String)
+  TryLogin
+  LoginResult(Result(SessionInfo, http.HttpError))
   LoadState(Result(String, http.HttpError))
   Tick
   TimeInputChanged(new_time: String)

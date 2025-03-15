@@ -14,7 +14,7 @@ import model.{
   type SettingsState, type State, type Validated, AddClockEvent,
   AddHolidayBooking, ApplySettings, CancelSettings, ChangeDay, ClockEvent,
   DeleteListItem, Err, Gain, HolidayBooking, HolidayInputChanged,
-  HolidayInputKeyDown, Home, In, InputState, Loaded, Loading, LunchChanged, NoOp,
+  HolidayInputKeyDown, Home, In, InputState, Loaded, Login, LunchChanged, NoOp,
   Office, OpenSettings, Out, SelectListItem, Settings, SettingsState, State,
   TargetChanged, TargetKeyDown, TimeInputChanged, TimeInputKeyDown, ToggleHome,
   TravelDistanceChanged, TravelDistanceKeyDown, Use, WeekTargetChanged,
@@ -485,7 +485,14 @@ fn settings_area(st: State, ss: SettingsState) {
 
 pub fn view(model: Model) {
   case model {
-    Loading -> eh.div([], [e.text("Loading...")])
+    Login(..) ->
+      eh.div([], [
+        eh.p([], [e.text("Username:")]),
+        eh.input([ev.on_input(model.UsernameChanged)]),
+        eh.p([], [e.text("Password:")]),
+        eh.input([ev.on_input(model.PasswordChanged)]),
+        eh.button([ev.on_click(model.TryLogin)], [e.text("Login")]),
+      ])
     Err(e) -> eh.div([], [e.text("Error: " <> e)])
     Loaded(state) -> {
       eh.div([a.class("container row mx-auto")], [

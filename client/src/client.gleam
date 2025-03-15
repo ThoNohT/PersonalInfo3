@@ -2,6 +2,7 @@ import gleam/float
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
+import util/site
 
 import birl.{type Day}
 import lustre
@@ -12,13 +13,15 @@ import model.{
   type DayState, type InputState, type Model, type Msg, type State,
   AddClockEvent, AddHolidayBooking, ApplySettings, CancelSettings, ChangeDay,
   ClockEvent, DayState, DeleteListItem, Err, HolidayBooking, HolidayInputChanged,
-  HolidayInputKeyDown, In, InputState, LoadState, Loaded, Loading, LunchChanged,
-  Office, OpenSettings, SelectListItem, Settings, SettingsState, State,
-  TargetChanged, TargetKeyDown, Tick, TimeInputChanged, TimeInputKeyDown,
-  ToggleHome, TravelDistanceChanged, TravelDistanceKeyDown, WeekTargetChanged,
-  WeekTargetKeyDown, unvalidated, validate,
+  HolidayInputKeyDown, In, InputState, LoadState, Loaded, Login, LoginResult,
+  LunchChanged, Office, OpenSettings, PasswordChanged, SelectListItem, Settings,
+  SettingsState, State, TargetChanged, TargetKeyDown, Tick, TimeInputChanged,
+  TimeInputKeyDown, ToggleHome, TravelDistanceChanged, TravelDistanceKeyDown,
+  TryLogin, UsernameChanged, WeekTargetChanged, WeekTargetKeyDown, unvalidated,
+  validate,
 }
 import parsing
+import shared_model.{type Credentials, Credentials}
 import util/duration
 import util/effect as ef
 import util/time.{type Time}
@@ -32,10 +35,7 @@ pub fn main() {
 }
 
 fn init(_) {
-  #(
-    Loading,
-    http.get("http://localhost:5500/static/state.txt", http.expect_text(LoadState)),
-  )
+  #(Login(Credentials("", "")), effect.none())
 }
 
 fn load_state(input: String, today: Day, now: Time) -> State {
@@ -83,8 +83,27 @@ fn update(model: Model, msg: Msg) {
   case model {
     // Loading.
     Err(_) -> ef.just(model)
-    Loading -> {
+    Login(creds) -> {
       case msg {
+        UsernameChanged(username) ->
+          ef.just(Login(Credentials(..creds, username:)))
+        PasswordChanged(password) ->
+          ef.just(Login(Credentials(..creds, password:)))
+        TryLogin -> {
+          let base_url = site.base_url()
+          #(
+            model,
+            http.post(
+              base_url <> "/api/user/login",
+              shared_model.encode_credentials(creds),
+              http.expect_json(shared_model.session_info_decoder(), LoginResult),
+            ),
+          )
+        }
+        LoginResult(result) -> {
+          let _ = echo result
+          ef.just(model)
+        }
         LoadState(result) -> {
           case result {
             Error(_) -> ef.just(Err("Could not load state."))
