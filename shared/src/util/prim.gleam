@@ -1,8 +1,8 @@
-import gleam/string
 import gleam/io
 import gleam/option.{type Option}
 import gleam/order.{type Order, Eq}
 import gleam/result
+import gleam/string
 
 import birl
 

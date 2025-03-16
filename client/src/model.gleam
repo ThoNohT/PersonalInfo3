@@ -1,16 +1,18 @@
+import gleam/float
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/order.{Eq, Gt, Lt}
+import gleam/string_tree
 
 import birl.{type Day, Day}
 import lustre_http as http
 
+import shared_model.{type Credentials, type SessionInfo}
 import util/day
 import util/duration.{type Duration, Duration}
 import util/numbers.{Pos}
 import util/prim
 import util/time.{type Time, Time}
-import shared_model.{type Credentials, type SessionInfo}
 
 pub type Validated(a) {
   Validated(input: String, parsed: Option(a))
@@ -469,26 +471,36 @@ pub fn add_day_state(state: State, day: Day) -> State {
     birl.Sat | birl.Sun -> duration.zero()
     _ -> duration.hours(8)
   }
-  let current_state = DayState(date: day, target:, lunch:, events: [])
+  let new_state = DayState(date: day, target:, lunch:, events: [])
 
   let folder = fn(acc: #(List(DayState), Option(DayState)), state: DayState) -> #(
     List(DayState),
     Option(DayState),
   ) {
     case acc.1, day.compare(day, state.date) {
+      // We already added it.
       Some(_), _ -> #([state, ..acc.0], acc.1)
+      // The day is equal, so it is already in the state. Nothing to do.
       None, Eq -> #([state, ..acc.0], Some(state))
+      // The day is greater, so we need to look further to the right.
       None, Gt -> #([state, ..acc.0], acc.1)
       // The first time the day is smaller than the history entry, prepend it.
-      None, Lt -> #([state, current_state, ..acc.0], Some(current_state))
+      None, Lt -> #([state, new_state, ..acc.0], Some(new_state))
     }
   }
 
+  // Insert it at the right position. If it was not inserted, add it at the end.
+  // Note that we add it at the front, since the list is reversed.
   let result = state.history |> list.fold(#([], None), folder)
+  let new_history = case result.1 {
+    Some(_) -> result.0 |> list.reverse
+    None -> [new_state, ..result.0 |> list.reverse]
+  }
+
   State(
     ..state,
-    current_state: result.1 |> option.unwrap(current_state),
-    history: result.0 |> list.reverse
+    current_state: result.1 |> option.unwrap(new_state),
+    history: new_history,
   )
 }
 
@@ -543,4 +555,50 @@ pub fn calculate_target_duration(
     // This should never happen, it doesn't do anything anyway.
   }
   |> Some
+}
+
+/// Serializes the state to a string that can be stored in the api.
+pub fn serialize_state(st: State) -> String {
+  let serialize_event = fn(event: DayEvent) -> String {
+    case event {
+      ClockEvent(..) as ce -> {
+        time.to_int_string(ce.time)
+        <> case ce.location {
+          Home -> "H"
+          Office -> "O"
+        }
+      }
+      HolidayBooking(..) as hb -> {
+        duration.to_int_string(hb.amount)
+        <> case hb.kind {
+          Gain -> "v"
+          Use -> "V"
+        }
+      }
+    }
+  }
+
+  let serialize_day = fn(st: DayState) -> string_tree.StringTree {
+    let event_strings = st.events |> list.map(serialize_event)
+    [
+      day.to_int_string(st.date),
+      duration.to_int_string(st.target),
+      case st.lunch {
+        True -> "L"
+        False -> "N"
+      },
+    ]
+    |> list.append(event_strings)
+    |> string_tree.from_strings
+  }
+
+  let state_lines = st.history |> list.map(serialize_day)
+  [
+    "W" <> duration.to_int_string(st.week_target),
+    "T" <> float.to_string(st.travel_distance),
+  ]
+  |> list.map(string_tree.from_string)
+  |> list.append(state_lines)
+  |> string_tree.join("\n")
+  |> string_tree.to_string()
 }
