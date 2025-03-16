@@ -14,6 +14,15 @@ pub fn dispatch(val: msg) -> Effect(msg) {
   effect.from(fn(dispatch) { dispatch(val) })
 }
 
+/// Result.try that can be used for short-circuiting message and effect loops.
+pub fn try(
+  default: b,
+  option: Result(a, d),
+  apply fun: fn(a) -> #(b, Effect(c)),
+) -> #(b, Effect(c)) {
+  prim.try(just(default), option, fun)
+}
+
 /// Option.then, that can be used for short-circuiting message and effect loops.
 pub fn then(
   default: b,

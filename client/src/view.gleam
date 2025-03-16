@@ -14,11 +14,11 @@ import model.{
   type SettingsState, type State, type Validated, AddClockEvent,
   AddHolidayBooking, ApplySettings, CancelSettings, ChangeDay, ClockEvent,
   DeleteListItem, Err, Gain, HolidayBooking, HolidayInputChanged,
-  HolidayInputKeyDown, Home, In, InputState, Loaded, Login, LunchChanged, NoOp,
-  Office, OpenSettings, Out, SelectListItem, Settings, SettingsState, State,
-  TargetChanged, TargetKeyDown, TimeInputChanged, TimeInputKeyDown, ToggleHome,
-  TravelDistanceChanged, TravelDistanceKeyDown, Use, WeekTargetChanged,
-  WeekTargetKeyDown, is_valid,
+  HolidayInputKeyDown, Home, In, InputState, Loaded, Loading, Login,
+  LunchChanged, NoOp, Office, OpenSettings, Out, SelectListItem, Settings,
+  SettingsState, State, TargetChanged, TargetKeyDown, TimeInputChanged,
+  TimeInputKeyDown, ToggleHome, TravelDistanceChanged, TravelDistanceKeyDown,
+  Use, WeekTargetChanged, WeekTargetKeyDown, is_valid,
 }
 import util/day
 import util/duration
@@ -493,6 +493,7 @@ pub fn view(model: Model) {
         eh.input([ev.on_input(model.PasswordChanged)]),
         eh.button([ev.on_click(model.TryLogin)], [e.text("Login")]),
       ])
+    Loading(..) -> eh.div([], [e.text("Loading...")])
     Err(e) -> eh.div([], [e.text("Error: " <> e)])
     Loaded(state) -> {
       eh.div([a.class("container row mx-auto")], [

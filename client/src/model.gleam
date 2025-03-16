@@ -136,7 +136,8 @@ pub type SettingsState {
 }
 
 pub type Model {
-  Login(credentials: Credentials)
+  Login(credentials: Credentials, failed: Bool)
+  Loading(session: SessionInfo)
   Err(String)
   Loaded(state: State)
   Settings(state: State, settings: SettingsState)
@@ -144,6 +145,7 @@ pub type Model {
 
 pub type State {
   State(
+    session: SessionInfo,
     today: Day,
     now: Time,
     history: List(DayState),
