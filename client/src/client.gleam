@@ -15,7 +15,7 @@ import model.{
   AddClockEvent, AddHolidayBooking, ApplySettings, CancelSettings, ChangeDay,
   ClockEvent, DayState, DeleteListItem, Err, HolidayBooking, HolidayInputChanged,
   HolidayInputKeyDown, In, InputState, LoadState, Loaded, Loading, Login,
-  LoginResult, LunchChanged, Office, OpenSettings, PasswordChanged,
+  LoginResult, Logout, LunchChanged, NoOp, Office, OpenSettings, PasswordChanged,
   SelectListItem, Settings, SettingsState, State, TargetChanged, TargetKeyDown,
   Tick, TimeInputChanged, TimeInputKeyDown, ToggleHome, TravelDistanceChanged,
   TravelDistanceKeyDown, TryLogin, UsernameChanged, WeekTargetChanged,
@@ -161,6 +161,18 @@ fn update(model: Model, msg: Msg) {
             |> model.update_history
             |> model.recalculate_statistics,
           ))
+        }
+        Logout -> {
+          let request =
+            site.request_with_authorization(
+              site.base_url() <> "/api/user/logout",
+              ghttp.Post,
+              st.session.session_id,
+            )
+          #(
+            Login(Credentials("", ""), False),
+            http.send(request, http.expect_anything(fn(_) { NoOp })),
+          )
         }
         TimeInputChanged(new_time) -> {
           let input_state =
