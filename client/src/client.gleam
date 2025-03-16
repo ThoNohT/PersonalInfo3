@@ -1,7 +1,7 @@
 import gleam/float
 import gleam/http as ghttp
 import gleam/list
-import gleam/option.{type Option, None, Some}
+import gleam/option.{None, Some}
 import gleam/string
 import util/site
 
@@ -149,16 +149,13 @@ fn update(model: Model, msg: Msg) {
 
     // Loaded.
     Loaded(st) -> {
-      let then = fn(opt: Option(a), cont) { ef.then(model, opt, cont) }
-      let check = fn(cond, cont) { ef.check(model, cond, cont) }
-
       case msg {
         Tick -> {
           let today = time.today()
           let now = time.now()
 
           // Only update if the time changed to the precision we observe it (minutes).
-          use <- check(now != st.now)
+          use <- ef.check(model, now != st.now)
           ef.just(Loaded(
             State(..st, today:, now:)
             |> model.update_history
@@ -274,8 +271,9 @@ fn update(model: Model, msg: Msg) {
           ))
         }
         AddClockEvent -> {
-          use time <- then(st.input_state.clock_input.parsed)
-          use <- check(
+          use time <- ef.then(model, st.input_state.clock_input.parsed)
+          use <- ef.check(
+            model,
             !model.daystate_has_clock_event_at(st.current_state, time),
           )
 
@@ -291,7 +289,7 @@ fn update(model: Model, msg: Msg) {
           ))
         }
         AddHolidayBooking(kind) -> {
-          use duration <- then(st.input_state.holiday_input.parsed)
+          use duration <- ef.then(model, st.input_state.holiday_input.parsed)
 
           let new_event =
             HolidayBooking(list.length(st.current_state.events), duration, kind)
