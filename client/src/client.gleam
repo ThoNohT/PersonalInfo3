@@ -1,5 +1,6 @@
 import gleam/float
 import gleam/http as ghttp
+import gleam/http/request
 import gleam/list
 import gleam/option.{None, Some}
 import gleam/string
@@ -87,7 +88,29 @@ fn load_state(
   State(..state, input_state:)
 }
 
+/// Sends a request to store the current state to the api.
+/// Will only send a request if the state is loaded.
+fn store_state(model: Model) -> effect.Effect(Msg) {
+  case model {
+    Loaded(st) -> {
+      let request =
+        site.request_with_authorization(
+          site.base_url() <> "/api/simplestate/pi_history",
+          ghttp.Put,
+          st.session.session_id,
+        )
+        |> request.set_body(model.serialize_state(st))
+      http.send(request, http.expect_anything(fn(_) { NoOp }))
+    }
+    _ -> effect.none()
+  }
+}
+
 fn update(model: Model, msg: Msg) {
+  // When returning the model, this function can be called on it,
+  // to also send the new serialized state to the api.
+  let and_store = fn(m: Model) { #(m, store_state(m)) }
+
   case model {
     // Loading.
     Err(_) -> ef.just(model)
@@ -197,23 +220,30 @@ fn update(model: Model, msg: Msg) {
           let target_input =
             validate(string.slice(new_target, 0, 6), duration.parse)
           let input_state = InputState(..st.input_state, target_input:)
-          let current_state = case target_input.parsed {
-            None -> st.current_state
-            Some(target) -> DayState(..st.current_state, target:)
+          let current_state_and_update = case target_input.parsed {
+            None -> #(st.current_state, False)
+            Some(target) -> #(DayState(..st.current_state, target:), True)
           }
-          ef.just(Loaded(
-            State(..st, current_state:, input_state:)
-            |> model.update_history
-            |> model.recalculate_statistics,
-          ))
+          let current_state = current_state_and_update.0
+          let new_model =
+            Loaded(
+              State(..st, current_state:, input_state:)
+              |> model.update_history
+              |> model.recalculate_statistics,
+            )
+          case current_state_and_update.1 {
+            False -> ef.just(new_model)
+            True -> new_model |> and_store
+          }
         }
         LunchChanged(new_lunch) -> {
           let current_state = DayState(..st.current_state, lunch: new_lunch)
-          ef.just(Loaded(
+          Loaded(
             State(..st, current_state:)
             |> model.update_history
             |> model.recalculate_statistics,
-          ))
+          )
+          |> and_store
         }
         SelectListItem(idx) -> {
           let selected_event =
@@ -252,11 +282,12 @@ fn update(model: Model, msg: Msg) {
                   ..st.current_state,
                   events: list.append(before, af) |> model.recalculate_events,
                 )
-              ef.just(Loaded(
+              Loaded(
                 State(..st, current_state:)
                 |> model.update_history
                 |> model.recalculate_statistics,
-              ))
+              )
+              |> and_store
             }
             _ -> ef.just(model)
           }
@@ -276,11 +307,12 @@ fn update(model: Model, msg: Msg) {
               ..st.current_state,
               events: new_events |> model.recalculate_events,
             )
-          ef.just(Loaded(
+          Loaded(
             State(..st, current_state:)
             |> model.update_history
             |> model.recalculate_statistics,
-          ))
+          )
+          |> and_store
         }
         AddClockEvent -> {
           use time <- ef.then(model, st.input_state.clock_input.parsed)
@@ -294,11 +326,12 @@ fn update(model: Model, msg: Msg) {
           let events =
             [new_event, ..st.current_state.events] |> model.recalculate_events
           let current_state = DayState(..st.current_state, events:)
-          ef.just(Loaded(
+          Loaded(
             State(..st, current_state:)
             |> model.update_history
             |> model.recalculate_statistics,
-          ))
+          )
+          |> and_store
         }
         AddHolidayBooking(kind) -> {
           use duration <- ef.then(model, st.input_state.holiday_input.parsed)
@@ -308,11 +341,12 @@ fn update(model: Model, msg: Msg) {
           let events =
             [new_event, ..st.current_state.events] |> model.recalculate_events
           let current_state = DayState(..st.current_state, events:)
-          ef.just(Loaded(
+          Loaded(
             State(..st, current_state:)
             |> model.update_history
             |> model.recalculate_statistics,
-          ))
+          )
+          |> and_store
         }
         ChangeDay(amount, dir) -> {
           let first_day =
@@ -432,10 +466,11 @@ fn update(model: Model, msg: Msg) {
             ss.week_target_input.parsed |> option.unwrap(st.week_target)
           let travel_distance =
             ss.travel_distance_input.parsed |> option.unwrap(st.travel_distance)
-          ef.just(Loaded(
+          Loaded(
             State(..st, week_target:, travel_distance:)
             |> model.recalculate_statistics,
-          ))
+          )
+          |> and_store
         }
         WeekTargetChanged(new_target) -> {
           let week_target_input =

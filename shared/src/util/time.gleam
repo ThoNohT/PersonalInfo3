@@ -58,6 +58,12 @@ pub fn to_string(time: Time) -> String {
   <> string.pad_start(int.to_string(time.minutes), 2, "0")
 }
 
+/// Converts a Time to a string in the format hhmm.
+pub fn to_int_string(time: Time) -> String {
+  string.pad_start(int.to_string(time.hours), 2, "0")
+  <> string.pad_start(int.to_string(time.minutes), 2, "0")
+}
+
 /// Compares two Time values.
 pub fn compare(a: Time, b: Time) -> Order {
   use <- prim.compare_try(int.compare(a.hours, b.hours))

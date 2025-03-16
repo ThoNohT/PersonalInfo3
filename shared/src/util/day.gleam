@@ -53,6 +53,13 @@ pub fn to_string(day: Day) -> String {
   <> string.pad_start(int.to_string(day.date), 2, "0")
 }
 
+/// Converts a Day to a string inthe format yyyymmdd.
+pub fn to_int_string(day: Day) -> String {
+  string.pad_start(int.to_string(day.year), 4, "0")
+  <> string.pad_start(int.to_string(day.month), 2, "0")
+  <> string.pad_start(int.to_string(day.date), 2, "0")
+}
+
 /// Returns the difference in days between two Days.
 fn days_diff(a: Day, b: Day) {
   let from_time = to_time_midnight(a)

@@ -106,6 +106,12 @@ pub fn to_decimal_string(duration: Duration, decimals: Int) -> String {
   <> float.to_string(float.to_precision(frac, decimals))
 }
 
+/// Converts a Duration to a string as an int with the hours and minutes concatenated as numbers.
+pub fn to_int_string(duration: Duration) -> String {
+  string.pad_start(int.to_string(duration.hours), 2, "0")
+  <> string.pad_start(int.to_string(duration.minutes), 2, "0")
+}
+
 /// Converts a duration to a string in all the formats in which it was not parsed.
 pub fn to_unparsed_format_string(duration: Duration) -> String {
   case duration.parsed_from {
