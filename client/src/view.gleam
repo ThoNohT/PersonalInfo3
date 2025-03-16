@@ -14,7 +14,7 @@ import model.{
   type SettingsState, type State, type Validated, AddClockEvent,
   AddHolidayBooking, ApplySettings, CancelSettings, ChangeDay, ClockEvent,
   DeleteListItem, Err, Gain, HolidayBooking, HolidayInputChanged,
-  HolidayInputKeyDown, Home, In, InputState, Loaded, Loading, Login,
+  HolidayInputKeyDown, Home, In, InputState, Loaded, Loading, Login, Logout,
   LunchChanged, NoOp, Office, OpenSettings, Out, SelectListItem, Settings,
   SettingsState, State, TargetChanged, TargetKeyDown, TimeInputChanged,
   TimeInputKeyDown, ToggleHome, TravelDistanceChanged, TravelDistanceKeyDown,
@@ -357,7 +357,10 @@ fn input_area(is: InputState, ds: DayStatistics) {
         [a.class("col-2 btn btn-primary m-1"), ev.on_click(OpenSettings)],
         [e.text("Settings")],
       ),
-      eh.h3([a.class("col-9 text-center")], [e.text("Input")]),
+      eh.h3([a.class("col-7 text-center")], [e.text("Input")]),
+      eh.button([a.class("col-2 btn btn-primary m-1"), ev.on_click(Logout)], [
+        e.text("Logout"),
+      ]),
     ])
 
   eh.div([a.class("col-6")], [

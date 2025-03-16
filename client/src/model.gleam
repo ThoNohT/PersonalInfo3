@@ -256,6 +256,7 @@ pub type Msg {
   NoOp
   UsernameChanged(new_username: String)
   PasswordChanged(new_password: String)
+  Logout
   TryLogin
   LoginResult(Result(SessionInfo, http.HttpError))
   LoadState(Result(String, http.HttpError))
