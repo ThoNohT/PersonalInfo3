@@ -2,6 +2,7 @@ import gleam/float
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
+import gleam/http as ghttp
 import util/site
 
 import birl.{type Day}
@@ -13,15 +14,15 @@ import model.{
   type DayState, type InputState, type Model, type Msg, type State,
   AddClockEvent, AddHolidayBooking, ApplySettings, CancelSettings, ChangeDay,
   ClockEvent, DayState, DeleteListItem, Err, HolidayBooking, HolidayInputChanged,
-  HolidayInputKeyDown, In, InputState, LoadState, Loaded, Login, LoginResult,
-  LunchChanged, Office, OpenSettings, PasswordChanged, SelectListItem, Settings,
-  SettingsState, State, TargetChanged, TargetKeyDown, Tick, TimeInputChanged,
-  TimeInputKeyDown, ToggleHome, TravelDistanceChanged, TravelDistanceKeyDown,
-  TryLogin, UsernameChanged, WeekTargetChanged, WeekTargetKeyDown, unvalidated,
-  validate,
+  HolidayInputKeyDown, In, InputState, LoadState, Loaded, Loading, Login,
+  LoginResult, LunchChanged, Office, OpenSettings, PasswordChanged,
+  SelectListItem, Settings, SettingsState, State, TargetChanged, TargetKeyDown,
+  Tick, TimeInputChanged, TimeInputKeyDown, ToggleHome, TravelDistanceChanged,
+  TravelDistanceKeyDown, TryLogin, UsernameChanged, WeekTargetChanged,
+  WeekTargetKeyDown, unvalidated, validate,
 }
 import parsing
-import shared_model.{type Credentials, Credentials}
+import shared_model.{type Credentials, type SessionInfo, Credentials}
 import util/duration
 import util/effect as ef
 import util/time.{type Time}
@@ -35,10 +36,15 @@ pub fn main() {
 }
 
 fn init(_) {
-  #(Login(Credentials("", "")), effect.none())
+  #(Login(Credentials("", ""), False), effect.none())
 }
 
-fn load_state(input: String, today: Day, now: Time) -> State {
+fn load_state(
+  session: SessionInfo,
+  input: String,
+  today: Day,
+  now: Time,
+) -> State {
   // TODO: Proper handling of failing to parse.
   let assert Some(state_input) = parsing.parse_state_input(input)
 
@@ -52,6 +58,7 @@ fn load_state(input: String, today: Day, now: Time) -> State {
     DayState(date: today, target: duration.zero(), lunch: False, events: [])
   let state =
     State(
+      session:,
       today:,
       now:,
       current_state:,
@@ -83,12 +90,12 @@ fn update(model: Model, msg: Msg) {
   case model {
     // Loading.
     Err(_) -> ef.just(model)
-    Login(creds) -> {
+    Login(creds, _failed) -> {
       case msg {
         UsernameChanged(username) ->
-          ef.just(Login(Credentials(..creds, username:)))
+          ef.just(Login(Credentials(..creds, username:), False))
         PasswordChanged(password) ->
-          ef.just(Login(Credentials(..creds, password:)))
+          ef.just(Login(Credentials(..creds, password:), False))
         TryLogin -> {
           let base_url = site.base_url()
           #(
@@ -101,9 +108,22 @@ fn update(model: Model, msg: Msg) {
           )
         }
         LoginResult(result) -> {
-          let _ = echo result
-          ef.just(model)
+          use session <- ef.try(Login(creds, True), result)
+          let request =
+            site.request_with_authorization(
+              site.base_url() <> "/api/simplestate/pi_history",
+              ghttp.Get,
+              session.session_id,
+            )
+          #(Loading(session), http.send(request, http.expect_text(LoadState)))
         }
+        _ -> ef.just(model)
+      }
+    }
+
+    // Loading.
+    Loading(session) -> {
+      case msg {
         LoadState(result) -> {
           case result {
             Error(_) -> ef.just(Err("Could not load state."))
@@ -111,7 +131,7 @@ fn update(model: Model, msg: Msg) {
               let today = time.today()
               let now = time.now()
 
-              let state = load_state(res, today, now)
+              let state = load_state(session, res, today, now)
               #(
                 Loaded(state),
                 effect.batch([

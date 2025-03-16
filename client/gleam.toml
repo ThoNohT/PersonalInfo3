@@ -10,6 +10,7 @@ lustre = ">= 4.6.4 and < 5.0.0"
 birl = ">= 1.8.0 and < 2.0.0"
 lustre_http = ">= 0.7.0 and < 1.0.0"
 personalinfo3_shared = { path = "../shared" }
+gleam_http = ">= 3.7.2 and < 4.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.3.0 and < 2.0.0"
