@@ -1,8 +1,8 @@
 import gleam/float
+import gleam/http as ghttp
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
-import gleam/http as ghttp
 import util/site
 
 import birl.{type Day}
@@ -68,7 +68,8 @@ fn load_state(
       history: state_input.history
         |> list.map(fn(d) {
           DayState(..d, events: d.events |> model.recalculate_events)
-        }),
+        })
+        |> list.reverse,
       week_target: state_input.week_target,
       travel_distance: state_input.travel_distance,
     )

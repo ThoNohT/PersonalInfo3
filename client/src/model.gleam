@@ -487,7 +487,7 @@ pub fn add_day_state(state: State, day: Day) -> State {
   State(
     ..state,
     current_state: result.1 |> option.unwrap(current_state),
-    history: result.0,
+    history: result.0 |> list.reverse
   )
 }
 

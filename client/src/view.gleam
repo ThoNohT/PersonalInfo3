@@ -488,9 +488,9 @@ pub fn view(model: Model) {
     Login(..) ->
       eh.div([], [
         eh.p([], [e.text("Username:")]),
-        eh.input([ev.on_input(model.UsernameChanged)]),
+        eh.input([a.autofocus(True), ev.on_input(model.UsernameChanged)]),
         eh.p([], [e.text("Password:")]),
-        eh.input([ev.on_input(model.PasswordChanged)]),
+        eh.input([a.type_("password"), ev.on_input(model.PasswordChanged)]),
         eh.button([ev.on_click(model.TryLogin)], [e.text("Login")]),
       ])
     Loading(..) -> eh.div([], [e.text("Loading...")])
