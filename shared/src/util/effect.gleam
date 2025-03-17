@@ -16,16 +16,16 @@ pub fn dispatch(val: msg) -> Effect(msg) {
 
 /// short_circuit.result_default, that can be used for short-circuiting message and effect loops.
 pub fn result_default(
-  default: b,
   option: Result(a, d),
+  default: b,
 ) -> sc.ShortCircuitable(a, d, #(b, Effect(e))) {
   sc.result_default(option, just(default))
 }
 
 /// short_circuit.option_default, that can be used for short-circuiting message and effect loops.
 pub fn option_default(
-  default: b,
   option: Option(a),
+  default: b,
 ) -> sc.ShortCircuitable(a, Nil, #(b, Effect(c))) {
   sc.option_default(option, just(default))
 }
