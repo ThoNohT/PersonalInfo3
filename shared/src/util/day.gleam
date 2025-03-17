@@ -6,7 +6,7 @@ import gleam/string
 import birl.{type Day, type Time, type Weekday, Day}
 import birl/duration
 
-import util/prim
+import util/short_circuit.{do} as sc
 
 /// Converts a Day to a Time.
 fn to_time_midnight(day: Day) -> Time {
@@ -80,8 +80,8 @@ pub fn to_relative_string(day: Day, today: Day) -> Option(String) {
 
 /// Compares two Days.
 pub fn compare(a: Day, b: Day) -> Order {
-  use <- prim.compare_try(int.compare(a.year, b.year))
-  use <- prim.compare_try(int.compare(a.month, b.month))
+  use <- do(sc.compare(int.compare(a.year, b.year)))
+  use <- do(sc.compare(int.compare(a.month, b.month)))
   int.compare(a.date, b.date)
 }
 

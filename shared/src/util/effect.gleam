@@ -2,7 +2,7 @@ import gleam/option.{type Option}
 
 import lustre/effect.{type Effect}
 
-import util/prim
+import util/short_circuit as sc
 
 /// Return a new state, without sending a message.
 pub fn just(val) {
@@ -14,31 +14,28 @@ pub fn dispatch(val: msg) -> Effect(msg) {
   effect.from(fn(dispatch) { dispatch(val) })
 }
 
-/// Result.try that can be used for short-circuiting message and effect loops.
-pub fn try(
+/// short_circuit.result_default, that can be used for short-circuiting message and effect loops.
+pub fn result_default(
   default: b,
   option: Result(a, d),
-  apply fun: fn(a) -> #(b, Effect(c)),
-) -> #(b, Effect(c)) {
-  prim.try(just(default), option, fun)
+) -> sc.ShortCircuitable(a, d, #(b, Effect(e))) {
+  sc.result_default(option, just(default))
 }
 
-/// Option.then, that can be used for short-circuiting message and effect loops.
-pub fn then(
+/// short_circuit.option_default, that can be used for short-circuiting message and effect loops.
+pub fn option_default(
   default: b,
   option: Option(a),
-  apply fun: fn(a) -> #(b, Effect(c)),
-) -> #(b, Effect(c)) {
-  prim.then(just(default), option, fun)
+) -> sc.ShortCircuitable(a, Nil, #(b, Effect(c))) {
+  sc.option_default(option, just(default))
 }
 
-/// Then, but it checks a boolean value rather than an option.
+/// short_circuit.check, that can be used for short-circuiting message and effect loops.
 pub fn check(
   default: a,
   value: Bool,
-  apply fun: fn() -> #(a, Effect(b)),
-) -> #(a, Effect(b)) {
-  prim.check(just(default), value, fun)
+) -> sc.ShortCircuitable(Nil, Nil, #(a, Effect(f))) {
+  sc.check(just(default), value)
 }
 
 @target(javascript)

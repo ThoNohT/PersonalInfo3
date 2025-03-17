@@ -6,7 +6,7 @@ import gleam/string
 import birl
 
 import util/numbers as num
-import util/prim
+import util/short_circuit.{do} as sc
 
 /// A fixed time in the day.
 pub type Time {
@@ -66,7 +66,7 @@ pub fn to_int_string(time: Time) -> String {
 
 /// Compares two Time values.
 pub fn compare(a: Time, b: Time) -> Order {
-  use <- prim.compare_try(int.compare(a.hours, b.hours))
+  use <- do(int.compare(a.hours, b.hours) |> sc.compare)
   int.compare(a.minutes, b.minutes)
 }
 
@@ -74,8 +74,8 @@ pub fn parse_split_time(hour: String, minute: String, limit_hours: Bool) {
   use int_hr <- option.then(num.parse_pos_int(hour))
   use int_min <- option.then(num.parse_pos_int(minute))
 
-  use <- prim.check(None, int_hr < 24 || !limit_hours)
-  use <- prim.check(None, int_min < 60)
+  use <- do(sc.check(None, int_hr < 24 || !limit_hours))
+  use <- do(sc.check(None, int_min < 60))
 
   Time(int_hr, int_min) |> Some
 }

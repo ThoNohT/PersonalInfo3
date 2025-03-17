@@ -11,7 +11,7 @@ import shared_model.{type Credentials, type SessionInfo}
 import util/day
 import util/duration.{type Duration, Duration}
 import util/numbers.{Pos}
-import util/prim
+import util/short_circuit.{bind, do} as sc
 import util/time.{type Time, Time}
 
 pub type Validated(a) {
@@ -178,7 +178,9 @@ pub fn move_date(
   today: Day,
 ) -> Day {
   // If we are at the min edge, we will always move by one bakward. Otherwise, always cap it between min and max.
-  use <- prim.check(day.prev(day), !{ direction == Backward && day == min })
+  use <- do(
+    sc.check(day.prev(day), { !{ direction == Backward && day == min } }),
+  )
 
   let move_week = fn(d: Day, dir: MoveDirection) {
     let weekday = day.weekday(d) |> day.weekday_to_int
@@ -381,19 +383,19 @@ pub fn recalculate_statistics(state: State) -> State {
       )
 
       ClockEvent(_, time, loc, In) -> {
-        use <- prim.check(acc, this_week)
+        use <- do(sc.check(acc, this_week))
         #(acc.0, Some(#(loc, time)))
       }
 
       ClockEvent(_, time, _, Out) -> {
         // Location can be ignored here. We will use the location of the clock-in event.
-        use <- prim.check(acc, this_week)
+        use <- do(sc.check(acc, this_week))
         let assert Some(state) = acc.1
         let acc = #(
           add_week(acc.0, duration.between(from: state.1, to: time)),
           acc.1,
         )
-        use <- prim.check(acc, curr_day)
+        use <- do(sc.check(acc, curr_day))
         #(
           add_hours(acc.0, state.0, duration.between(from: state.1, to: time)),
           None,
@@ -511,8 +513,8 @@ pub fn calculate_target_time(
   dir: MoveDirection,
   now: Time,
 ) -> Option(Time) {
-  use <- prim.check(Some(now), amount != ToNow)
-  use current <- option.then(current)
+  use <- do(sc.check(Some(now), amount != ToNow))
+  use current <- bind(sc.option(current))
 
   case amount, dir {
     MoveMinute, Forward -> time.add_minutes(current, 1)

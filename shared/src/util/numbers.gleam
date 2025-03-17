@@ -1,6 +1,8 @@
 import gleam/int
 import gleam/option.{type Option, None, Some}
-import util/prim
+
+import util/short_circuit.{bind, do} as sc
+
 
 /// The possible signs for a number.
 pub type Sign {
@@ -10,13 +12,13 @@ pub type Sign {
 
 /// Parses a positive int.
 pub fn parse_pos_int(str) -> Option(Int) {
-  use parsed <- option.then(int.base_parse(str, 10) |> option.from_result)
-  use <- prim.check(None, parsed >= 0)
+  use parsed <- bind(int.base_parse(str, 10) |> option.from_result |> sc.option)
+  use <- do(sc.check(None, parsed >= 0))
   Some(parsed)
 }
 
 fn magnitude_go(acc: Int, val: Int) {
-  use <- prim.check(acc, val > 0)
+  use <- do(sc.check(acc, val > 0))
   magnitude_go(acc * 10, val / 10)
 }
 

@@ -12,7 +12,7 @@ import model.{
 import util/duration.{type Duration, Duration}
 import util/numbers.{Pos}
 import util/parser.{type Parser} as p
-import util/prim
+import util/short_circuit.{bind, do} as sc
 
 /// Parsed data for constructhing the state.
 pub type StateInput {
@@ -114,9 +114,9 @@ fn parse_day_state() -> Parser(DayState) {
 }
 
 fn parse_line(acc: Option(StateInput), line: String) -> Option(StateInput) {
-  use <- prim.check(acc, !{ string.is_empty(line) })
+  use <- do(sc.check(acc, !{ string.is_empty(line) }))
   // Skip empty lines.
-  use si <- option.then(acc)
+  use si <- bind(acc |> sc.option)
 
   let parser = {
     use checkpoint <- p.save_state()

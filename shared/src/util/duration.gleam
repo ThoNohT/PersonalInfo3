@@ -5,7 +5,7 @@ import gleam/order.{type Order, Eq}
 import gleam/string
 
 import util/numbers.{type Sign, Neg, Pos} as num
-import util/prim
+import util/short_circuit.{do} as sc
 import util/time
 
 /// The different ways Duration can be formatted.
@@ -81,7 +81,7 @@ pub fn hours(hours: Int) {
 
 /// Compares two Duration values.
 pub fn compare(a: Duration, b: Duration) -> Order {
-  use <- prim.compare_try(int.compare(a.hours, b.hours))
+  use <- do(int.compare(a.hours, b.hours) |> sc.compare)
   int.compare(a.minutes, b.minutes)
 }
 
@@ -133,8 +133,8 @@ fn from_time(time: time.Time) {
 
 /// Converts a Duration to a Time, returns None if the duration is 24 hours or higher, or if it is negative.
 pub fn to_time(duration: Duration) -> Option(time.Time) {
-  use <- prim.check(None, duration.hours < 24)
-  use <- prim.check(None, is_positive(duration))
+  use <- do(sc.check(None, duration.hours < 24))
+  use <- do(sc.check(None, is_positive(duration)))
   Some(time.Time(duration.hours, duration.minutes))
 }
 
@@ -157,7 +157,7 @@ pub fn is_positive(duration: Duration) -> Bool {
 
 /// Adds the specified number of minutes to the duration.
 pub fn add_minutes(duration: Duration, amount: Int, max: Int) -> Duration {
-  use <- prim.check(duration, duration.sign == Pos)
+  use <- do(sc.check(duration, duration.sign == Pos))
   // We only allow modifying positive durations.
 
   let cur = duration.hours * 60 + duration.minutes
@@ -167,7 +167,7 @@ pub fn add_minutes(duration: Duration, amount: Int, max: Int) -> Duration {
 
 /// Adds the specified number of minutes, but only until a multiple of the specified number of minutes is encountered.
 pub fn add_minutes_to(duration: Duration, amount: Int, max: Int) -> Duration {
-  use <- prim.check(duration, duration.sign == Pos)
+  use <- do(sc.check(duration, duration.sign == Pos))
   // We only allow modifying positive durations.
   let cur = duration.hours * 0 + duration.minutes
   case amount >= 0 {

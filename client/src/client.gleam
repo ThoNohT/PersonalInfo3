@@ -26,6 +26,7 @@ import parsing
 import shared_model.{type Credentials, type SessionInfo, Credentials}
 import util/duration
 import util/effect as ef
+import util/short_circuit.{bind, do}
 import util/time.{type Time}
 import view.{view}
 
@@ -132,7 +133,7 @@ fn update(model: Model, msg: Msg) {
           )
         }
         LoginResult(result) -> {
-          use session <- ef.try(Login(creds, True), result)
+          use session <- bind(ef.result_default(Login(creds, True), result))
           let request =
             site.request_with_authorization(
               site.base_url() <> "/api/simplestate/pi_history",
@@ -178,7 +179,7 @@ fn update(model: Model, msg: Msg) {
           let now = time.now()
 
           // Only update if the time changed to the precision we observe it (minutes).
-          use <- ef.check(model, now != st.now)
+          use <- do(ef.check(model, now != st.now))
           ef.just(Loaded(
             State(..st, today:, now:)
             |> model.update_history
@@ -315,11 +316,14 @@ fn update(model: Model, msg: Msg) {
           |> and_store
         }
         AddClockEvent -> {
-          use time <- ef.then(model, st.input_state.clock_input.parsed)
-          use <- ef.check(
+          use time <- bind(ef.option_default(
+            model,
+            st.input_state.clock_input.parsed,
+          ))
+          use <- do(ef.check(
             model,
             !model.daystate_has_clock_event_at(st.current_state, time),
-          )
+          ))
 
           let new_event =
             ClockEvent(list.length(st.current_state.events), time, Office, In)
@@ -334,7 +338,10 @@ fn update(model: Model, msg: Msg) {
           |> and_store
         }
         AddHolidayBooking(kind) -> {
-          use duration <- ef.then(model, st.input_state.holiday_input.parsed)
+          use duration <- bind(ef.option_default(
+            model,
+            st.input_state.holiday_input.parsed,
+          ))
 
           let new_event =
             HolidayBooking(list.length(st.current_state.events), duration, kind)
@@ -384,7 +391,7 @@ fn update(model: Model, msg: Msg) {
           ef.just(Loaded(State(..state, input_state:)))
         }
         TimeInputKeyDown(amount, dir) -> {
-          use to_time <- ef.then(
+          use to_time <- bind(ef.option_default(
             model,
             model.calculate_target_time(
               st.input_state.clock_input.parsed,
@@ -392,7 +399,7 @@ fn update(model: Model, msg: Msg) {
               dir,
               st.now,
             ),
-          )
+          ))
           let input_state =
             InputState(
               ..st.input_state,
@@ -401,7 +408,7 @@ fn update(model: Model, msg: Msg) {
           ef.just(Loaded(State(..st, input_state:)))
         }
         HolidayInputKeyDown(amount, dir) -> {
-          use to_duration <- ef.then(
+          use to_duration <- bind(ef.option_default(
             model,
             model.calculate_target_duration(
               st.input_state.holiday_input.parsed,
@@ -409,7 +416,7 @@ fn update(model: Model, msg: Msg) {
               dir,
               1000,
             ),
-          )
+          ))
           let input_state =
             InputState(
               ..st.input_state,
@@ -421,7 +428,7 @@ fn update(model: Model, msg: Msg) {
           ef.just(Loaded(State(..st, input_state:)))
         }
         TargetKeyDown(amount, dir) -> {
-          use to_duration <- ef.then(
+          use to_duration <- bind(ef.option_default(
             model,
             model.calculate_target_duration(
               st.input_state.target_input.parsed,
@@ -429,7 +436,7 @@ fn update(model: Model, msg: Msg) {
               dir,
               24,
             ),
-          )
+          ))
           let input_state =
             InputState(
               ..st.input_state,
@@ -481,7 +488,7 @@ fn update(model: Model, msg: Msg) {
           ))
         }
         WeekTargetKeyDown(amount, dir) -> {
-          use to_duration <- ef.then(
+          use to_duration <- bind(ef.option_default(
             model,
             model.calculate_target_duration(
               ss.week_target_input.parsed,
@@ -489,7 +496,7 @@ fn update(model: Model, msg: Msg) {
               dir,
               24 * 7,
             ),
-          )
+          ))
           let settings =
             SettingsState(
               ..ss,
@@ -512,10 +519,10 @@ fn update(model: Model, msg: Msg) {
           ))
         }
         TravelDistanceKeyDown(amount, dir) -> {
-          use current_distance <- ef.then(
+          use current_distance <- bind(ef.option_default(
             model,
             ss.travel_distance_input.parsed,
-          )
+          ))
 
           let new_distance = case amount, dir {
             model.Ones, model.Forward -> current_distance +. 1.0
