@@ -24,6 +24,7 @@ mise use -g erlang@27.3
 
 - Build the server and client and run the server.
     - Other packages needed to build the server: rebar3
+    - Other packages needed to build the client: esbuild
 
 ```sh
 # Build the client.
