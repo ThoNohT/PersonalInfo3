@@ -42,8 +42,11 @@ fn handle_request(req: wisp.Request, context: Context) -> wisp.Response {
 }
 
 pub fn main() {
+  io.println("Startup step 1")
   wisp.configure_logger()
+  io.println("Startup step 2")
   let secret_key_base = wisp.random_string(64)
+  io.println("Startup step 3")
 
   // Perform startup logic.
   let conn_str = "file:../pi3.db"
@@ -51,6 +54,7 @@ pub fn main() {
     db_migrate.migrate_database(conn_str, "../migrations")
     |> result.map_error(io.println_error),
   )
+  io.println("Startup step 4")
 
   let context = {
     use conn <- sqlight.with_connection(conn_str)
@@ -77,9 +81,11 @@ pub fn main() {
     |> mist.new
     |> mist.port(5500)
     |> mist.start_http
+  io.println("Startup step 5")
 
   // The web server runs in new Erlang process, so put this one to sleep while
   // it works concurrently.
   process.sleep_forever()
+  io.println("Shutdown")
   Ok(Nil)
 }
