@@ -6,14 +6,14 @@ target = "erlang"
 
 [dependencies]
 gleam_stdlib = ">= 0.44.0 and < 2.0.0"
-personalinfo3_shared = { path = "../shared" }
 wisp = ">= 1.5.3 and < 2.0.0"
-mist = ">= 4.0.7 and < 5.0.0"
+personalinfo3_shared = { path = "../shared" }
+mist = ">= 4.0.6 and < 5.0.0"
 gleam_erlang = ">= 0.34.0 and < 1.0.0"
 sqlight = ">= 1.0.1 and < 2.0.0"
 simplifile = ">= 2.2.0 and < 3.0.0"
 birl = ">= 1.8.0 and < 2.0.0"
-gleam_http = ">= 4.0.0 and < 5.0.0"
+gleam_http = ">= 3.7.2 and < 4.0.0"
 gleam_crypto = ">= 1.4.0 and < 2.0.0"
 gleam_json = ">= 2.3.0 and < 3.0.0"
 
