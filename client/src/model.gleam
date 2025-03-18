@@ -494,7 +494,7 @@ pub fn add_day_state(state: State, day: Day) -> State {
   let result = state.history |> list.fold(#([], None), folder)
   let new_history = case result.1 {
     Some(_) -> result.0 |> list.reverse
-    None -> [new_state, ..result.0 |> list.reverse]
+    None -> [new_state, ..result.0] |> list.reverse
   }
 
   State(
