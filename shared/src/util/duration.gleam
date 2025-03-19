@@ -41,6 +41,14 @@ pub fn to_minutes(d: Duration) -> Int {
   }
 }
 
+/// Negates the sign of the provided duration.
+pub fn negate(d: Duration) -> Duration {
+  Duration(..d, sign: case d.sign {
+    Pos -> Neg
+    Neg -> Pos
+  })
+}
+
 /// Converts a number of minutes to a duration.
 pub fn from_minutes(minutes: Int) -> Duration {
   case minutes < 0 {
@@ -75,8 +83,13 @@ pub fn zero() {
 }
 
 /// Returns a duration of the specified number of hours.
-pub fn hours(hours: Int) {
-  Duration(hours, 0, Pos, Some(DecimalFormat))
+pub fn hours(hours: Int, sign: Sign) {
+  Duration(hours, 0, sign, Some(DecimalFormat))
+}
+
+/// Returns a duration of the specified number of minute.
+pub fn minutes(minutes: Int, sign: Sign) {
+  Duration(minutes / 60, minutes % 60, sign, Some(DecimalFormat))
 }
 
 /// Compares two Duration values.

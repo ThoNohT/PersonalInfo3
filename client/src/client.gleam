@@ -4,7 +4,6 @@ import gleam/http/request
 import gleam/list
 import gleam/option.{None, Some}
 import gleam/string
-import util/site
 
 import birl.{type Day}
 import lustre
@@ -22,10 +21,12 @@ import model.{
   TravelDistanceKeyDown, TryLogin, UsernameChanged, WeekTargetChanged,
   WeekTargetKeyDown, unvalidated, validate,
 }
+import model/statistics
 import parsing
 import shared_model.{type Credentials, type SessionInfo, Credentials}
 import util/duration
 import util/effect as ef
+import util/site
 import util/time.{type Time}
 import view.{view}
 
@@ -52,7 +53,7 @@ fn load_state(
   // Fixed values:
   let input_state = InputState(unvalidated(), unvalidated(), unvalidated())
   let selected_event_index = None
-  let stats = model.stats_zero()
+  let stats = statistics.zero()
 
   // Make some current state, it will be replaced by add_day_state.
   let current_state =
@@ -75,7 +76,7 @@ fn load_state(
       travel_distance: state_input.travel_distance,
     )
     |> model.add_day_state(today)
-    |> model.recalculate_statistics
+    |> statistics.recalculate
 
   let input_state =
     InputState(
@@ -182,7 +183,7 @@ fn update(model: Model, msg: Msg) {
           ef.just(Loaded(
             State(..st, today:, now:)
             |> model.update_history
-            |> model.recalculate_statistics,
+            |> statistics.recalculate,
           ))
         }
         Logout -> {
@@ -229,7 +230,7 @@ fn update(model: Model, msg: Msg) {
             Loaded(
               State(..st, current_state:, input_state:)
               |> model.update_history
-              |> model.recalculate_statistics,
+              |> statistics.recalculate,
             )
           case current_state_and_update.1 {
             False -> ef.just(new_model)
@@ -241,7 +242,7 @@ fn update(model: Model, msg: Msg) {
           Loaded(
             State(..st, current_state:)
             |> model.update_history
-            |> model.recalculate_statistics,
+            |> statistics.recalculate,
           )
           |> and_store
         }
@@ -285,7 +286,7 @@ fn update(model: Model, msg: Msg) {
               Loaded(
                 State(..st, current_state:)
                 |> model.update_history
-                |> model.recalculate_statistics,
+                |> statistics.recalculate,
               )
               |> and_store
             }
@@ -310,7 +311,7 @@ fn update(model: Model, msg: Msg) {
           Loaded(
             State(..st, current_state:)
             |> model.update_history
-            |> model.recalculate_statistics,
+            |> statistics.recalculate,
           )
           |> and_store
         }
@@ -329,7 +330,7 @@ fn update(model: Model, msg: Msg) {
           Loaded(
             State(..st, current_state:)
             |> model.update_history
-            |> model.recalculate_statistics,
+            |> statistics.recalculate,
           )
           |> and_store
         }
@@ -344,7 +345,7 @@ fn update(model: Model, msg: Msg) {
           Loaded(
             State(..st, current_state:)
             |> model.update_history
-            |> model.recalculate_statistics,
+            |> statistics.recalculate,
           )
           |> and_store
         }
@@ -368,9 +369,9 @@ fn update(model: Model, msg: Msg) {
             list.find(st.history, fn(s: DayState) { s.date == to_day })
           {
             Ok(current_state) ->
-              State(..st, current_state:) |> model.recalculate_statistics
+              State(..st, current_state:) |> statistics.recalculate
             Error(_) ->
-              model.add_day_state(st, to_day) |> model.recalculate_statistics
+              model.add_day_state(st, to_day) |> statistics.recalculate
           }
 
           let input_state =
@@ -468,7 +469,7 @@ fn update(model: Model, msg: Msg) {
             ss.travel_distance_input.parsed |> option.unwrap(st.travel_distance)
           Loaded(
             State(..st, week_target:, travel_distance:)
-            |> model.recalculate_statistics,
+            |> statistics.recalculate,
           )
           |> and_store
         }

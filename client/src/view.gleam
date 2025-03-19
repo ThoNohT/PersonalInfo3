@@ -10,15 +10,15 @@ import lustre/element/html as eh
 import lustre/event as ev
 
 import model.{
-  type DayEvent, type DayStatistics, type InputState, type Model, type Msg,
-  type SettingsState, type State, type Validated, AddClockEvent,
-  AddHolidayBooking, ApplySettings, CancelSettings, ChangeDay, ClockEvent,
-  DeleteListItem, Err, Gain, HolidayBooking, HolidayInputChanged,
-  HolidayInputKeyDown, Home, In, InputState, Loaded, Loading, Login, Logout,
-  LunchChanged, NoOp, Office, OpenSettings, Out, SelectListItem, Settings,
-  SettingsState, State, TargetChanged, TargetKeyDown, TimeInputChanged,
-  TimeInputKeyDown, ToggleHome, TravelDistanceChanged, TravelDistanceKeyDown,
-  Use, WeekTargetChanged, WeekTargetKeyDown, is_valid,
+  type DayEvent, type InputState, type Model, type Msg, type SettingsState,
+  type State, type Statistics, type Validated, AddClockEvent, AddHolidayBooking,
+  ApplySettings, CancelSettings, ChangeDay, ClockEvent, DeleteListItem, Err,
+  Gain, HolidayBooking, HolidayInputChanged, HolidayInputKeyDown, Home, In,
+  InputState, Loaded, Loading, Login, Logout, LunchChanged, NoOp, Office,
+  OpenSettings, Out, SelectListItem, Settings, SettingsState, State,
+  TargetChanged, TargetKeyDown, TimeInputChanged, TimeInputKeyDown, ToggleHome,
+  TravelDistanceChanged, TravelDistanceKeyDown, Use, WeekTargetChanged,
+  WeekTargetKeyDown, is_valid,
 }
 import util/day
 import util/duration
@@ -97,14 +97,14 @@ fn day_item_card(selected_index: Option(Int), event: DayEvent) {
 }
 
 fn day_item_list(st: State) {
-  let eta_text = case duration.is_positive(st.stats.eta) {
-    True -> duration.to_string(st.stats.eta)
+  let eta_text = case duration.is_positive(st.stats.current_day.eta) {
+    True -> duration.to_string(st.stats.current_day.eta)
     False -> "Complete"
   }
 
   let end_text = case
-    duration.is_positive(st.stats.eta),
-    duration.later(st.now, st.stats.eta)
+    duration.is_positive(st.stats.current_day.eta),
+    duration.later(st.now, st.stats.current_day.eta)
   {
     True, Some(done_at) -> [eh.br([]), e.text(time.to_string(done_at))]
     _, _ -> []
@@ -334,7 +334,7 @@ fn input_keydown_handler_float(
   }
 }
 
-fn input_area(is: InputState, ds: DayStatistics) {
+fn input_area(is: InputState, ds: Statistics) {
   let btn = fn(msg, txt, enabled) {
     eh.button(
       [
@@ -409,15 +409,15 @@ fn input_area(is: InputState, ds: DayStatistics) {
       eh.hr([]),
       eh.div([a.class("row p-2")], [
         eh.b([a.class("col-3")], [e.text("Total: ")]),
-        e.text(duration.to_string(ds.total)),
+        e.text(duration.to_string(ds.current_day.total)),
       ]),
       eh.div([a.class("row p-2")], [
         eh.b([a.class("col-3")], [e.text("Total (office): ")]),
-        e.text(duration.to_string(ds.total_office)),
+        e.text(duration.to_string(ds.current_day.total_office)),
       ]),
       eh.div([a.class("row p-2")], [
         eh.b([a.class("col-3")], [e.text("Total (home): ")]),
-        e.text(duration.to_string(ds.total_home)),
+        e.text(duration.to_string(ds.current_day.total_home)),
       ]),
       eh.hr([]),
       eh.div([a.class("row p-2")], [
