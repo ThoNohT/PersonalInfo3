@@ -30,9 +30,7 @@ pub type Duration {
 
 /// Converts a duration to minutes.
 pub fn to_minutes(d: Duration) -> Int {
-  d.hours
-  * 60
-  + d.minutes
+  { d.hours * 60 + d.minutes }
   * {
     case d.sign {
       Neg -> -1
@@ -62,7 +60,14 @@ pub fn from_minutes(minutes: Int) -> Duration {
 
 /// Adds two durations, retains the format of the first, unless it is not specified, then that of the second.
 pub fn add(a: Duration, b: Duration) {
-  from_minutes(to_minutes(a) + to_minutes(b))
+  let parsed_from = option.or(a.parsed_from, b.parsed_from)
+  Duration(
+    ..from_minutes(
+      { to_minutes(a) |> prim.dbg("a") } + { to_minutes(b) |> prim.dbg("b") },
+    )
+    |> prim.dbg("out"),
+    parsed_from:,
+  )
 }
 
 /// Subtracts two durations, retains the format of the first, unless it is not specified, then that of the second.
