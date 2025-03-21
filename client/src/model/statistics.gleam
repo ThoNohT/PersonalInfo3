@@ -84,7 +84,7 @@ pub fn calculate_day(ds: DayState, today: Day, now: Time) -> DayStatistics {
   // If lunch is included, assume half an hour of clocked time doesn't exist. Take it from the longest period
   // of office or home, but prefer office if this cannot be determined. If no clock events, then don't
   // take any lunch away, since we didn't work at all.
-  case ds.lunch, model.daystate_has_clock_events(ds) {
+  let stats = case ds.lunch, model.daystate_has_clock_events(ds) {
     True, True -> {
       let half_hour = duration.minutes(30, Neg)
       case duration.compare(stats.total_office, stats.total_home) {
@@ -94,6 +94,9 @@ pub fn calculate_day(ds: DayState, today: Day, now: Time) -> DayStatistics {
     }
     _, _ -> stats
   }
+
+  // Fill in the remaining.
+  DayStatistics(..stats, eta: duration.subtract(ds.target, stats.total))
 }
 
 /// Recalculates the statistics in the provided state.

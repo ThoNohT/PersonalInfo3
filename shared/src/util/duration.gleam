@@ -61,13 +61,7 @@ pub fn from_minutes(minutes: Int) -> Duration {
 /// Adds two durations, retains the format of the first, unless it is not specified, then that of the second.
 pub fn add(a: Duration, b: Duration) {
   let parsed_from = option.or(a.parsed_from, b.parsed_from)
-  Duration(
-    ..from_minutes(
-      { to_minutes(a) |> prim.dbg("a") } + { to_minutes(b) |> prim.dbg("b") },
-    )
-    |> prim.dbg("out"),
-    parsed_from:,
-  )
+  Duration(..from_minutes(to_minutes(a) + to_minutes(b)), parsed_from:)
 }
 
 /// Subtracts two durations, retains the format of the first, unless it is not specified, then that of the second.
