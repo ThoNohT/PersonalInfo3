@@ -20,6 +20,7 @@ pub fn handler(req: wisp.Request, ctx: Context) -> wisp.Response {
   case path {
     // User functions
     ["user", "login"] -> login(req, ctx.conn_str)
+    ["user", "check_session"] -> check_session(req, ctx.conn_str)
     ["user", "logout"] -> logout(req, ctx.conn_str)
     ["user", "init"] -> init_user(req, ctx)
 
@@ -58,6 +59,22 @@ fn login(req: wisp.Request, conn_str: String) -> wisp.Response {
 
   let body = shared_model.encode_session_info(session_info)
   wisp.json_response(json.to_string_tree(body), 200)
+}
+
+// Checks whether a session is valid.
+fn check_session(req: wisp.Request, conn_str: String) -> wisp.Response {
+  use <- wisp.require_method(req, http.Get)
+
+  use token <- hh.require_header(401, req, "authorization")
+
+  use conn <- db.with_connection(conn_str, True)
+  use user_id <- hh.try(500, repository.find_user_from_session(conn, token))
+  use _ <- hh.then(401, user_id)
+
+  repository.clear_expired_sessions(conn)
+  use <- db.commit(conn)
+
+  wisp.ok()
 }
 
 // Attempts to login the user.

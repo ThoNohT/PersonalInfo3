@@ -3,7 +3,9 @@ import gleam/http as ghttp
 import gleam/http/request
 import gleam/list
 import gleam/option.{None, Some}
+import gleam/order.{Lt}
 import gleam/string
+import util/local_storage
 
 import birl.{type Day}
 import lustre
@@ -19,7 +21,8 @@ import model.{
   PasswordChanged, SelectListItem, Settings, SettingsState, State, TargetChanged,
   TargetKeyDown, Tick, TimeInputChanged, TimeInputKeyDown, ToggleHome,
   TravelDistanceChanged, TravelDistanceKeyDown, TryLogin, UsernameChanged,
-  WeekTargetChanged, WeekTargetKeyDown, unvalidated, validate,
+  ValidateSessionCheck, WeekTargetChanged, WeekTargetKeyDown, unvalidated,
+  validate,
 }
 import model/statistics
 import parsing
@@ -38,7 +41,28 @@ pub fn main() {
 }
 
 fn init(_) {
-  #(Login(Credentials("", ""), False), effect.none())
+  let now = birl.now()
+  let login_state = Login(Credentials("", ""), False)
+
+  // Load session from local storage.
+  use session <- ef.then(
+    login_state,
+    local_storage.get("session", shared_model.session_info_decoder()),
+  )
+  // Check session validity.
+  use <- ef.check(login_state, birl.compare(now, session.expires_at) == Lt)
+
+  // Try to see if session is still valid.
+  let request =
+    site.request_with_authorization(
+      site.base_url() <> "/api/user/check_session",
+      ghttp.Get,
+      session.session_id,
+    )
+  #(
+    Loading(session),
+    http.send(request, http.expect_anything(ValidateSessionCheck)),
+  )
 }
 
 fn load_state(
@@ -113,8 +137,10 @@ fn update(model: Model, msg: Msg) {
   let and_store = fn(m: Model) { #(m, store_state(m)) }
 
   case model {
-    // Loading.
+    // Err.
     Err(_) -> ef.just(model)
+
+    // Login.
     Login(creds, failed) -> {
       case msg {
         UsernameChanged(username) ->
@@ -146,6 +172,11 @@ fn update(model: Model, msg: Msg) {
           case result {
             Error(_) -> #(Login(creds, True), ef.focus("username-input", NoOp))
             Ok(session) -> {
+              local_storage.set(
+                "session",
+                session,
+                shared_model.encode_session_info,
+              )
               let request =
                 site.request_with_authorization(
                   site.base_url() <> "/api/simplestate/pi_history",
@@ -166,6 +197,26 @@ fn update(model: Model, msg: Msg) {
     // Loading.
     Loading(session) -> {
       case msg {
+        ValidateSessionCheck(result) -> {
+          case result {
+            Ok(_) -> {
+              let request =
+                site.request_with_authorization(
+                  site.base_url() <> "/api/simplestate/pi_history",
+                  ghttp.Get,
+                  session.session_id,
+                )
+              #(
+                Loading(session),
+                http.send(request, http.expect_text(LoadState)),
+              )
+            }
+            Error(_) -> {
+              local_storage.remove("session")
+              ef.just(Login(Credentials("", ""), False))
+            }
+          }
+        }
         LoadState(result) -> {
           case result {
             Error(_) -> ef.just(Err("Could not load state."))

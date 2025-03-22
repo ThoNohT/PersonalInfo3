@@ -256,6 +256,7 @@ pub type Msg {
   TryLogin
   LoginWithEnter(key: String)
   LoginResult(Result(SessionInfo, http.HttpError))
+  ValidateSessionCheck(Result(Nil, http.HttpError))
   LoadState(Result(String, http.HttpError))
   Tick
   TimeInputChanged(new_time: String)
