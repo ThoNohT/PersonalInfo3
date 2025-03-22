@@ -14,22 +14,22 @@ pub fn main() {
   gleeunit.main()
 }
 
-pub fn from_minutes_test() {
+pub fn from_minutes_and_to_string_test() {
   duration.from_minutes(0)
-  |> duration.to_time_string
-  |> should.equal("0:00")
+  |> duration.to_string
+  |> should.equal("0:00 / 0.0")
   duration.from_minutes(60)
-  |> duration.to_time_string
-  |> should.equal("1:00")
+  |> duration.to_string
+  |> should.equal("1:00 / 1.0")
   duration.from_minutes(-60)
-  |> duration.to_time_string
-  |> should.equal("-1:00")
+  |> duration.to_string
+  |> should.equal("-1:00 / -1.0")
   duration.from_minutes(-75)
-  |> duration.to_time_string
-  |> should.equal("-1:15")
+  |> duration.to_string
+  |> should.equal("-1:15 / -1.25")
   duration.from_minutes(-15)
-  |> duration.to_time_string
-  |> should.equal("-0:15")
+  |> duration.to_string
+  |> should.equal("-0:15 / -0.25")
 }
 
 pub fn add_minutes_test() {
