@@ -261,6 +261,7 @@ fn update(model: Model, msg: Msg) {
               ghttp.Post,
               st.session.session_id,
             )
+          local_storage.remove("session")
           #(
             Login(Credentials("", ""), False),
             http.send(request, http.expect_anything(fn(_) { NoOp })),
