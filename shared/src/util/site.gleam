@@ -18,3 +18,8 @@ pub fn request_with_authorization(
   |> request.set_method(method)
   |> request.prepend_header("authorization", auth)
 }
+
+@target(javascript)
+/// Sets focus to the element with the specified identifier.
+@external(javascript, "./ffi.mjs", "focus")
+pub fn focus(id: String) -> Nil

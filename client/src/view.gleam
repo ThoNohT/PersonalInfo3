@@ -488,14 +488,46 @@ fn settings_area(st: State, ss: SettingsState) {
 
 pub fn view(model: Model) {
   case model {
-    Login(..) ->
-      eh.div([], [
-        eh.p([], [e.text("Username:")]),
-        eh.input([a.autofocus(True), ev.on_input(model.UsernameChanged)]),
-        eh.p([], [e.text("Password:")]),
-        eh.input([a.type_("password"), ev.on_input(model.PasswordChanged)]),
-        eh.button([ev.on_click(model.TryLogin)], [e.text("Login")]),
+    Login(failed:, ..) -> {
+      let error_popup = case failed {
+        True ->
+          eh.div([a.class("row m-4 alert alert-danger")], [
+            e.text("Login failed."),
+          ])
+        False -> e.none()
+      }
+
+      eh.div([a.class("col container p-4")], [
+        eh.div([a.class("row m-4 justify-content-center")], [
+          eh.h3([a.class("col-2")], [e.text("Login")]),
+        ]),
+        error_popup,
+        eh.div([a.class("row m-4")], [
+          eh.p([a.class("col-4")], [e.text("Username:")]),
+          eh.input([
+            a.class("col-8"),
+            a.id("username-input"),
+            a.autofocus(True),
+            ev.on_input(model.UsernameChanged),
+            ev.on_keydown(model.LoginWithEnter),
+          ]),
+        ]),
+        eh.div([a.class("row m-4")], [
+          eh.p([a.class("col-4")], [e.text("Password:")]),
+          eh.input([
+            a.class("col-8"),
+            a.type_("password"),
+            ev.on_input(model.PasswordChanged),
+            ev.on_keydown(model.LoginWithEnter),
+          ]),
+        ]),
+        eh.div([a.class("row m-4")], [
+          eh.button([a.class("btn btn-primary"), ev.on_click(model.TryLogin)], [
+            e.text("Login"),
+          ]),
+        ]),
       ])
+    }
     Loading(..) -> eh.div([], [e.text("Loading...")])
     Err(e) -> eh.div([], [e.text("Error: " <> e)])
     Loaded(state) -> {

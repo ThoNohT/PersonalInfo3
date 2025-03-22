@@ -3,6 +3,8 @@ import gleam/option.{type Option}
 import lustre/effect.{type Effect}
 
 import util/prim
+@target(javascript)
+import util/site
 
 /// Return a new state, without sending a message.
 pub fn just(val) {
@@ -50,3 +52,12 @@ pub fn every(interval: Int, tick: msg) -> Effect(msg) {
 @target(javascript)
 @external(javascript, "./ffi.mjs", "every")
 fn do_every(_interval: Int, _cb: fn() -> Nil) -> Nil
+
+@target(javascript)
+/// Focuses an element, and dispatches the specified message.
+pub fn focus(id: String, message: msg) -> Effect(msg) {
+  effect.from(fn(dispatch) {
+    site.focus(id)
+    dispatch(message)
+  })
+}

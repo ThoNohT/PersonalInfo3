@@ -254,6 +254,7 @@ pub type Msg {
   PasswordChanged(new_password: String)
   Logout
   TryLogin
+  LoginWithEnter(key: String)
   LoginResult(Result(SessionInfo, http.HttpError))
   LoadState(Result(String, http.HttpError))
   Tick

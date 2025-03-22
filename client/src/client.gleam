@@ -15,11 +15,11 @@ import model.{
   AddClockEvent, AddHolidayBooking, ApplySettings, CancelSettings, ChangeDay,
   ClockEvent, DayState, DeleteListItem, Err, HolidayBooking, HolidayInputChanged,
   HolidayInputKeyDown, In, InputState, LoadState, Loaded, Loading, Login,
-  LoginResult, Logout, LunchChanged, NoOp, Office, OpenSettings, PasswordChanged,
-  SelectListItem, Settings, SettingsState, State, TargetChanged, TargetKeyDown,
-  Tick, TimeInputChanged, TimeInputKeyDown, ToggleHome, TravelDistanceChanged,
-  TravelDistanceKeyDown, TryLogin, UsernameChanged, WeekTargetChanged,
-  WeekTargetKeyDown, unvalidated, validate,
+  LoginResult, LoginWithEnter, Logout, LunchChanged, NoOp, Office, OpenSettings,
+  PasswordChanged, SelectListItem, Settings, SettingsState, State, TargetChanged,
+  TargetKeyDown, Tick, TimeInputChanged, TimeInputKeyDown, ToggleHome,
+  TravelDistanceChanged, TravelDistanceKeyDown, TryLogin, UsernameChanged,
+  WeekTargetChanged, WeekTargetKeyDown, unvalidated, validate,
 }
 import model/statistics
 import parsing
@@ -115,16 +115,26 @@ fn update(model: Model, msg: Msg) {
   case model {
     // Loading.
     Err(_) -> ef.just(model)
-    Login(creds, _failed) -> {
+    Login(creds, failed) -> {
       case msg {
         UsernameChanged(username) ->
-          ef.just(Login(Credentials(..creds, username:), False))
+          ef.just(Login(Credentials(..creds, username:), failed))
         PasswordChanged(password) ->
-          ef.just(Login(Credentials(..creds, password:), False))
+          ef.just(Login(Credentials(..creds, password:), failed))
+        LoginWithEnter(key) -> {
+          case key {
+            "Enter" -> #(model, ef.dispatch(TryLogin))
+            _ -> ef.just(model)
+          }
+        }
         TryLogin -> {
+          use <- ef.check(
+            model,
+            model.credentials.username != "" && model.credentials.password != "",
+          )
           let base_url = site.base_url()
           #(
-            model,
+            Login(..model, failed: False),
             http.post(
               base_url <> "/api/user/login",
               shared_model.encode_credentials(creds),
@@ -133,14 +143,21 @@ fn update(model: Model, msg: Msg) {
           )
         }
         LoginResult(result) -> {
-          use session <- ef.try(Login(creds, True), result)
-          let request =
-            site.request_with_authorization(
-              site.base_url() <> "/api/simplestate/pi_history",
-              ghttp.Get,
-              session.session_id,
-            )
-          #(Loading(session), http.send(request, http.expect_text(LoadState)))
+          case result {
+            Error(_) -> #(Login(creds, True), ef.focus("username-input", NoOp))
+            Ok(session) -> {
+              let request =
+                site.request_with_authorization(
+                  site.base_url() <> "/api/simplestate/pi_history",
+                  ghttp.Get,
+                  session.session_id,
+                )
+              #(
+                Loading(session),
+                http.send(request, http.expect_text(LoadState)),
+              )
+            }
+          }
         }
         _ -> ef.just(model)
       }
