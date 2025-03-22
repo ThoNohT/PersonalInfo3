@@ -9,7 +9,7 @@ import lustre_http as http
 
 import shared_model.{type Credentials, type SessionInfo}
 import util/day
-import util/duration.{type Duration, Duration}
+import util/duration.{type Duration}
 import util/numbers.{Pos}
 import util/prim
 import util/time.{type Time, Time}

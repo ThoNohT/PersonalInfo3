@@ -1,15 +1,14 @@
-import gleam/option.{Some, None}
+import gleam/option.{None, Some}
 
 import gleeunit
 import gleeunit/should
 
 import birl.{Day}
 
-import util/numbers.{Pos, Neg}
 import util/day
-import util/duration.{Duration}
-import util/time.{Time}
+import util/duration
 import util/parser as p
+import util/time.{Time}
 
 pub fn main() {
   gleeunit.main()
@@ -17,15 +16,20 @@ pub fn main() {
 
 pub fn from_minutes_test() {
   duration.from_minutes(0)
-    |> should.equal(Duration(0, 0, Pos, None))
+  |> duration.to_time_string
+  |> should.equal("0:00")
   duration.from_minutes(60)
-    |> should.equal(Duration(1, 0, Pos, None))
+  |> duration.to_time_string
+  |> should.equal("1:00")
   duration.from_minutes(-60)
-    |> should.equal(Duration(1, 0, Neg, None))
+  |> duration.to_time_string
+  |> should.equal("-1:00")
   duration.from_minutes(-75)
-    |> should.equal(Duration(1, 15, Neg, None))
+  |> duration.to_time_string
+  |> should.equal("-1:15")
   duration.from_minutes(-15)
-    |> should.equal(Duration(0, 15, Neg, None))
+  |> duration.to_time_string
+  |> should.equal("-0:15")
 }
 
 pub fn add_minutes_test() {
@@ -64,8 +68,8 @@ pub fn parser_test() {
   p.pchar() |> p.run("x") |> should.equal(Some("x"))
 
   // end.
-  p.end() |> p.run("a")|> should.equal(None)
-  p.end() |> p.run("")|> should.equal(Some(Nil))
+  p.end() |> p.run("a") |> should.equal(None)
+  p.end() |> p.run("") |> should.equal(Some(Nil))
 
   // Combining with then.
   let combined_parser = {
@@ -85,20 +89,24 @@ pub fn parser_test() {
   p.char("x") |> p.run("x") |> should.equal(Some("x"))
 
   // one_of, an by extension, alt.
-  let one_of_parser = p.one_of([ p.char("a"), p.char("b"), p.char("c") ])
+  let one_of_parser = p.one_of([p.char("a"), p.char("b"), p.char("c")])
   one_of_parser |> p.run("a") |> should.equal(Some("a"))
   one_of_parser |> p.run("b") |> should.equal(Some("b"))
   one_of_parser |> p.run("c") |> should.equal(Some("c"))
 
   // star.
-  p.star(one_of_parser) |> p.run("abcd") |> should.equal(Some([ "a", "b", "c" ]))
+  p.star(one_of_parser) |> p.run("abcd") |> should.equal(Some(["a", "b", "c"]))
   p.star(one_of_parser) |> p.run("eabcd") |> should.equal(Some([]))
 
   // plus.
-  p.plus(one_of_parser) |> p.run("abcad") |> should.equal(Some([ "a", "b", "c", "a" ]))
+  p.plus(one_of_parser)
+  |> p.run("abcad")
+  |> should.equal(Some(["a", "b", "c", "a"]))
   p.plus(one_of_parser) |> p.run("eabcd") |> should.equal(None)
 
   // repeat.
-  p.repeat(one_of_parser, 3) |> p.run("abcad") |> should.equal(Some([ "a", "b", "c" ]))
+  p.repeat(one_of_parser, 3)
+  |> p.run("abcad")
+  |> should.equal(Some(["a", "b", "c"]))
   p.repeat(one_of_parser, 3) |> p.run("abdc") |> should.equal(None)
 }

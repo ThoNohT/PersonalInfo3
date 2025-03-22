@@ -9,8 +9,8 @@ import model.{
   type DayEvent, type DayState, ClockEvent, DayState, Gain, HolidayBooking, Home,
   In, Office, Use,
 }
-import util/duration.{type Duration, Duration}
-import util/numbers.{Pos}
+import util/duration.{type Duration}
+import util/numbers
 import util/parser.{type Parser} as p
 import util/prim
 
@@ -33,7 +33,10 @@ fn parse_pos_int() -> Parser(Int) {
 fn parse_duration() -> Parser(Duration) {
   parse_pos_int()
   |> p.map(fn(nr) {
-    Duration(nr / 100, nr % 100, Pos, Some(duration.DecimalFormat))
+    let hours = nr / 100
+    let minutes = nr % 100
+    duration.from_minutes(hours * 60 + minutes)
+    |> duration.with_format(duration.DecimalFormat)
   })
 }
 

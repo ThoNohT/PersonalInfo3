@@ -19,7 +19,7 @@ pub type DurationFormat {
 }
 
 /// A duration in hours and minutes.
-pub type Duration {
+pub opaque type Duration {
   Duration(
     hours: Int,
     minutes: Int,
@@ -192,6 +192,11 @@ pub fn add_minutes_to(duration: Duration, amount: Int, max: Int) -> Duration {
       add_minutes(duration, dist, max)
     }
   }
+}
+
+/// Returns a new duration with the specified format.
+pub fn with_format(dur: Duration, format: DurationFormat) -> Duration {
+  Duration(..dur, parsed_from: Some(format))
 }
 
 /// Parses a duration from a string.
