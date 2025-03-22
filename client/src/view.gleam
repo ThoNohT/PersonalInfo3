@@ -528,7 +528,12 @@ pub fn view(model: Model) {
         ]),
       ])
     }
-    Loading(..) -> eh.div([], [e.text("Loading...")])
+    Loading(..) ->
+      eh.div([a.class("row mx-auto container justify-content-center p-4")], [
+        eh.div([a.class("spinner-border"), a.role("status")], [
+          eh.span([a.class("visually-hidden")], [e.text("Loading...")]),
+        ]),
+      ])
     Err(e) -> eh.div([], [e.text("Error: " <> e)])
     Loaded(state) -> {
       eh.div([a.class("container row mx-auto")], [
