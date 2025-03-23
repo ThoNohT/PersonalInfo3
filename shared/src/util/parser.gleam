@@ -17,6 +17,11 @@ pub fn run(p: Parser(a), input: String) -> Option(a) {
   input |> string.to_graphemes |> p |> option.map(fn(x) { x.result })
 }
 
+/// Converts a parser to a function that takes a string as input and runs the parser.
+pub fn conv(p: Parser(a)) -> fn(String) -> Option(a) {
+  fn(input) { run(p, input) }
+}
+
 /// A parser that returns the specified value and doesnt't consume anything.
 pub fn success(res: a) -> Parser(a) {
   fn(input) { Some(ParseSuccess(res, input)) }

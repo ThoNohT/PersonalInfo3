@@ -108,7 +108,7 @@ fn load_state(
       ..input_state,
       target_input: validate(
         duration.to_decimal_string(state.current_state.target, 2),
-        p.run(duration.parser(), _),
+        duration.parser() |> p.conv,
       ),
     )
   State(..state, input_state:)
@@ -290,9 +290,9 @@ fn update(model: Model, msg: Msg) {
             )
           ef.just(Loaded(State(..st, input_state:)))
         }
-        TargetChanged(new_target) -> {
+        TargetChanged(nt) -> {
           let target_input =
-            validate(string.slice(new_target, 0, 6), p.run(duration.parser(), _))
+            validate(string.slice(nt, 0, 6), duration.parser() |> p.conv)
           let input_state = InputState(..st.input_state, target_input:)
           let current_state_and_update = case target_input.parsed {
             None -> #(st.current_state, False)
@@ -340,7 +340,7 @@ fn update(model: Model, msg: Msg) {
                 ..st.input_state,
                 holiday_input: validate(
                   duration.to_time_string(hb.amount),
-                  p.run(duration.parser(), _),
+                  duration.parser() |> p.conv,
                 ),
               )
             None -> st.input_state
@@ -455,7 +455,7 @@ fn update(model: Model, msg: Msg) {
               ..state.input_state,
               target_input: validate(
                 duration.to_decimal_string(state.current_state.target, 2),
-                p.run(duration.parser(), _),
+                duration.parser() |> p.conv,
               ),
             )
           ef.just(Loaded(State(..state, input_state:)))
@@ -495,7 +495,7 @@ fn update(model: Model, msg: Msg) {
               ..st.input_state,
               holiday_input: validate(
                 duration.to_time_string(to_duration),
-                p.run(duration.parser(), _),
+                duration.parser() |> p.conv,
               ),
             )
           ef.just(Loaded(State(..st, input_state:)))
@@ -515,7 +515,7 @@ fn update(model: Model, msg: Msg) {
               ..st.input_state,
               target_input: validate(
                 duration.to_time_string(to_duration),
-                p.run(duration.parser(), _),
+                duration.parser() |> p.conv,
               ),
             )
           ef.just(Loaded(State(..st, input_state:)))
@@ -524,7 +524,7 @@ fn update(model: Model, msg: Msg) {
           let week_target_input =
             model.validate(
               duration.to_time_string(st.week_target),
-              p.run(duration.parser(), _),
+              duration.parser() |> p.conv,
             )
           let travel_distance_input =
             model.validate(float.to_string(st.travel_distance), fn(f) {
@@ -552,9 +552,9 @@ fn update(model: Model, msg: Msg) {
           )
           |> and_store
         }
-        WeekTargetChanged(new_target) -> {
+        WeekTargetChanged(nt) -> {
           let week_target_input =
-            validate(string.slice(new_target, 0, 6), p.run(duration.parser(), _))
+            validate(string.slice(nt, 0, 6), duration.parser() |> p.conv)
           ef.just(Settings(
             st,
             settings: SettingsState(..ss, week_target_input:),
@@ -575,7 +575,7 @@ fn update(model: Model, msg: Msg) {
               ..ss,
               week_target_input: validate(
                 duration.to_time_string(to_duration),
-                p.run(duration.parser(), _),
+                duration.parser() |> p.conv,
               ),
             )
           ef.just(Settings(st, settings:))
