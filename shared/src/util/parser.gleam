@@ -85,6 +85,14 @@ pub fn do(p: Parser(a), then: fn() -> Parser(b)) -> Parser(b) {
   }
 }
 
+/// Like check, but it can directly check a boolean and does not have to take input from another parser.
+pub fn guard(condition: Bool, then: fn() -> Parser(a)) -> Parser(a) {
+  case condition {
+    False -> failure()
+    True -> then()
+  }
+}
+
 /// Maps the specified function over the result of a parser.
 pub fn map(p: Parser(a), f: fn(a) -> b) -> Parser(b) {
   use res <- then(p)
@@ -98,9 +106,9 @@ pub fn bind(p: Parser(a), fp: fn(a) -> Parser(b)) -> Parser(b) {
 }
 
 /// A parser that parses a single character, and succeeds only if it matches the predicate.
-pub fn check(pred: fn(String) -> Bool) -> Parser(String) {
+pub fn pred(predicate: fn(String) -> Bool) -> Parser(String) {
   use char <- then(pchar())
-  case pred(char) {
+  case predicate(char) {
     True -> success(char)
     False -> failure()
   }
@@ -108,12 +116,12 @@ pub fn check(pred: fn(String) -> Bool) -> Parser(String) {
 
 /// A parser that parses the specified character.
 pub fn char(char: String) -> Parser(String) {
-  check(fn(c) { c == char })
+  pred(fn(c) { c == char })
 }
 
 /// A parser that parses characters as long as a predicate matches, and converts it into a string.
-pub fn string_check(pred: fn(String) -> Bool) -> Parser(String) {
-  plus(check(pred)) |> map(string.concat)
+pub fn string_pred(predicate: fn(String) -> Bool) -> Parser(String) {
+  plus(pred(predicate)) |> map(string.concat)
 }
 
 /// A parser that parses the specified string.
@@ -125,6 +133,15 @@ pub fn string(str: String) -> Parser(String) {
       use tl <- then(string(xs))
       success(string.concat([hd, tl]))
     }
+  }
+}
+
+/// A parser that can be used to check the result of a previous parser.
+pub fn check(p: Parser(a), predicate: fn(a) -> Bool) -> Parser(a) {
+  use res <- then(p)
+  case predicate(res) {
+    True -> success(res)
+    False -> failure()
   }
 }
 
@@ -159,6 +176,11 @@ pub fn star(p: Parser(a)) -> Parser(List(a)) {
   }
 
   alt(combined, success([]))
+}
+
+/// Runs a parser zero or one times.
+pub fn optional(p: Parser(a)) -> Parser(Option(a)) {
+  alt(map(p, Some), success(None))
 }
 
 /// Runs a parser one or more times.

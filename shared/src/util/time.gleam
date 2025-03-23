@@ -1,11 +1,13 @@
 import gleam/int
-import gleam/option.{type Option, None, Some}
+import gleam/option.{None, Some}
 import gleam/order.{type Order}
 import gleam/string
 
 import birl
 
 import util/numbers as num
+import util/parser.{type Parser} as p
+import util/parsers
 import util/prim
 
 /// A fixed time in the day.
@@ -70,20 +72,33 @@ pub fn compare(a: Time, b: Time) -> Order {
   int.compare(a.minutes, b.minutes)
 }
 
-pub fn parse_split_time(hour: String, minute: String, limit_hours: Bool) {
-  use int_hr <- option.then(num.parse_pos_int(hour))
-  use int_min <- option.then(num.parse_pos_int(minute))
+/// A parser for time that is formatted with a separating ":".
+/// The hours must be at most 23, unless limit_hours is set to False.
+/// The minutes must be at most 59.
+pub fn split_parser(limit_hours: Bool) -> Parser(Time) {
+  use hour <- p.then(parsers.pos_int())
+  use <- p.do(p.char(":"))
+  use min <- p.then(parsers.pos_int())
 
-  use <- prim.check(None, int_hr < 24 || !limit_hours)
-  use <- prim.check(None, int_min < 60)
+  use <- p.guard(hour < 24 || !limit_hours)
+  use <- p.guard(min < 60)
 
-  Time(int_hr, int_min) |> Some
+  Time(hour, min) |> p.success
 }
 
-fn parse_unsplit_time(time: String) {
-  use int_val <- option.then(num.parse_pos_int(time))
+/// A parser for time that is formatted without a separating ":".
+/// Based on the length of the number string that is detected, the following time is returned:
+/// 1 -> hour
+/// 2 -> hour, if less than 24
+/// 3 -> first digit hour, second and third minute, if they are less than 60.
+/// 4 -> first and second digits hour, if they are less than 24,
+///      second and third minute, if they are less than 60.
+/// Anything else -> failure.
+pub fn unsplit_parser() -> Parser(Time) {
+  use int_str <- p.then(p.string_pred(p.char_is_digit))
+  use int_val <- p.then(int_str |> int.parse |> p.from_result)
 
-  case string.length(time) {
+  case string.length(int_str) {
     0 -> None
     1 -> Time(int_val, 0) |> Some
     2 if int_val < 24 -> Time(int_val, 0) |> Some
@@ -92,10 +107,10 @@ fn parse_unsplit_time(time: String) {
       Time(int_val / 100, int_val % 100) |> Some
     _ -> None
   }
+  |> p.from_option
 }
 
-/// Parses a time of the day from a string.
-///
+/// A parser that can parse a time eithe using split_parser or unsplit_parser.
 /// Valid representations are:
 /// 1     -> 01:00
 /// 12    -> 12:00
@@ -112,10 +127,6 @@ fn parse_unsplit_time(time: String) {
 /// 2500 -> Would be 24:00
 /// 1261 -> Would be 12:61
 /// a:b where a > 23 or b > 59 would naturally represent invalid times.
-pub fn parse(time: String) -> Option(Time) {
-  case string.split(time, ":") {
-    [hr, min] -> parse_split_time(hr, min, True)
-    [time] -> parse_unsplit_time(time)
-    _ -> None
-  }
+pub fn parser() -> Parser(Time) {
+  p.alt(split_parser(True), unsplit_parser())
 }

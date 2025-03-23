@@ -1,18 +1,10 @@
 import gleam/int
-import gleam/option.{type Option, None, Some}
 import util/prim
 
 /// The possible signs for a number.
 pub type Sign {
   Pos
   Neg
-}
-
-/// Parses a positive int.
-pub fn parse_pos_int(str) -> Option(Int) {
-  use parsed <- option.then(int.base_parse(str, 10) |> option.from_result)
-  use <- prim.check(None, parsed >= 0)
-  Some(parsed)
 }
 
 fn magnitude_go(acc: Int, val: Int) {

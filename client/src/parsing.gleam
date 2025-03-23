@@ -10,11 +10,11 @@ import model.{
   In, Office, Use,
 }
 import util/duration.{type Duration}
-import util/numbers
 import util/parser.{type Parser} as p
+import util/parsers
 import util/prim
 
-/// Parsed data for constructhing the state.
+/// Parsed data for constructing the state.
 pub type StateInput {
   StateInput(
     week_target: Duration,
@@ -23,15 +23,9 @@ pub type StateInput {
   )
 }
 
-/// Parses a positive Int.
-fn parse_pos_int() -> Parser(Int) {
-  use int_str <- p.then(p.string_check(p.char_is_digit))
-  int_str |> int.parse() |> p.from_result
-}
-
 /// Parses a Duration, where the last 2 digits are the minutes, and everything before the hours.
 fn parse_duration() -> Parser(Duration) {
-  parse_pos_int()
+  parsers.pos_int()
   |> p.map(fn(nr) {
     let hours = nr / 100
     let minutes = nr % 100
@@ -40,33 +34,20 @@ fn parse_duration() -> Parser(Duration) {
   })
 }
 
-/// Parses a Float, where the decimal separator is a ".".
-fn parse_float() -> Parser(Float) {
-  use int_part <- p.then(parse_pos_int() |> p.map(int.to_float))
-
-  let decimal_parser = {
-    use <- p.do(p.char("."))
-    use dec_part <- p.then(parse_pos_int() |> p.map(numbers.decimalify))
-    p.success(int_part +. dec_part)
-  }
-
-  p.alt(decimal_parser, p.success(int_part))
-}
-
 /// Parses a Day.
 fn parse_date() -> Parser(Day) {
   use year <- p.then(
-    p.repeat(p.check(p.char_is_digit), 4)
+    p.repeat(p.pred(p.char_is_digit), 4)
     |> p.map(string.concat)
     |> p.bind(fn(x) { int.parse(x) |> p.from_result }),
   )
   use month <- p.then(
-    p.repeat(p.check(p.char_is_digit), 2)
+    p.repeat(p.pred(p.char_is_digit), 2)
     |> p.map(string.concat)
     |> p.bind(fn(x) { int.parse(x) |> p.from_result }),
   )
   use day <- p.then(
-    p.repeat(p.check(p.char_is_digit), 2)
+    p.repeat(p.pred(p.char_is_digit), 2)
     |> p.map(string.concat)
     |> p.bind(fn(x) { int.parse(x) |> p.from_result }),
   )
@@ -134,7 +115,7 @@ fn parse_line(acc: Option(StateInput), line: String) -> Option(StateInput) {
 
       // Try to parse the travel distance.
       "T" -> {
-        use d <- p.then(parse_float())
+        use d <- p.then(parsers.pos_float())
         use <- p.do(p.end())
         p.success(StateInput(..si, travel_distance: d))
       }

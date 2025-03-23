@@ -21,12 +21,12 @@ type Migration {
 
 /// A parser for a migration.
 fn migration_parser() -> Parser(Migration) {
-  use int_str <- p.then(p.string_check(p.char_is_digit))
+  use int_str <- p.then(p.string_pred(p.char_is_digit))
   use id <- p.then(int_str |> int.parse() |> p.from_result)
 
   use <- p.do(p.string(". "))
 
-  use name <- p.then(p.string_check(fn(c) { c != "." }))
+  use name <- p.then(p.string_pred(fn(c) { c != "." }))
 
   use <- p.do(p.string(".sql"))
   use <- p.do(p.end())

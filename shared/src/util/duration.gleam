@@ -5,6 +5,8 @@ import gleam/order.{type Order, Eq}
 import gleam/string
 
 import util/numbers.{type Sign, Neg, Pos} as num
+import util/parser.{type Parser} as p
+import util/parsers
 import util/prim
 import util/time
 
@@ -195,36 +197,32 @@ pub fn with_format(dur: Duration, format: DurationFormat) -> Duration {
   Duration(..dur, parsed_from: Some(format))
 }
 
-/// Parses a duration from a string.
-///
+/// A parser for a duration in a time format.
+pub fn time_parser() -> Parser(Duration) {
+  time.split_parser(False) |> p.map(from_time)
+}
+
+/// A parser for a duration in a decimal format.
+pub fn decimal_parser() -> Parser(Duration) {
+  use int <- p.then(parsers.pos_int())
+
+  let decimal_parser = {
+    use <- p.do(p.alt(p.char("."), p.char(",")))
+    use dec <- p.then(parsers.pos_int() |> p.map(num.decimalify))
+    Duration(int, float.round(60.0 *. dec), Pos, Some(DecimalFormat))
+    |> p.success
+  }
+
+  p.alt(decimal_parser, Duration(int, 0, Pos, Some(DecimalFormat)) |> p.success)
+}
+
+/// A parser for a duration.
 /// Valid representations are:
 /// 1    -> 1:00
 /// 100  -> 100:00 (etc)
 /// 1:23 -> 1:23
 /// 1.5  -> 1:30
 /// 1,5  -> 1:30
-pub fn parse(input: String) -> Option(Duration) {
-  case
-    string.split(input, ":"),
-    string.split(input, "."),
-    string.split(input, ",")
-  {
-    [hr, min], _, _ ->
-      time.parse_split_time(hr, min, False) |> option.map(from_time)
-    _, [int_, dec], _ | _, _, [int_, dec] -> {
-      use iint <- option.then(num.parse_pos_int(int_))
-      use idec <- option.then(num.parse_pos_int(dec))
-
-      Some(Duration(
-        iint,
-        float.round(60.0 *. num.decimalify(idec)),
-        Pos,
-        Some(DecimalFormat),
-      ))
-    }
-    _, [num], [num2] if num == num2 ->
-      num.parse_pos_int(num)
-      |> option.map(Duration(_, 0, Pos, Some(DecimalFormat)))
-    _, _, _ -> None
-  }
+pub fn parser() -> Parser(Duration) {
+  p.alt(time_parser(), decimal_parser())
 }
