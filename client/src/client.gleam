@@ -30,6 +30,7 @@ import shared_model.{type Credentials, type SessionInfo, Credentials}
 import util/duration
 import util/effect as ef
 import util/parser as p
+import util/parsers
 import util/site
 import util/time.{type Time}
 import view.{view}
@@ -581,11 +582,11 @@ fn update(model: Model, msg: Msg) {
           ef.just(Settings(st, settings:))
         }
         TravelDistanceChanged(new_distance) -> {
-          // TODO: Better parsing for floats.
           let travel_distance_input =
-            validate(string.slice(new_distance, 0, 4), fn(x) {
-              float.parse(x) |> option.from_result
-            })
+            validate(
+              string.slice(new_distance, 0, 4),
+              parsers.pos_float() |> p.conv,
+            )
           ef.just(Settings(
             st,
             settings: SettingsState(..ss, travel_distance_input:),
@@ -605,14 +606,13 @@ fn update(model: Model, msg: Msg) {
             model.Tenths, model.Forward -> current_distance +. 0.1
             model.Tenths, model.Backward -> current_distance -. 0.1
           }
-          // TODO: Better parsing for floats.
           ef.just(Settings(
             st,
             settings: SettingsState(
               ..ss,
               travel_distance_input: validate(
                 float.to_string(new_distance),
-                fn(x) { float.parse(x) |> option.from_result },
+                parsers.pos_float() |> p.conv,
               ),
             ),
           ))
