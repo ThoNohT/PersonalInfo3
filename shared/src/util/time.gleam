@@ -78,7 +78,9 @@ pub fn compare(a: Time, b: Time) -> Order {
 pub fn split_parser(limit_hours: Bool) -> Parser(Time) {
   use hour <- p.then(parsers.pos_int())
   use <- p.do(p.char(":"))
-  use min <- p.then(parsers.pos_int())
+  use min <- p.then(parsers.pos_int() |> p.optional)
+  // If only separator found, minutes part is 0.
+  let min = min |> option.unwrap(0)
 
   use <- p.guard(hour < 24 || !limit_hours)
   use <- p.guard(min < 60)

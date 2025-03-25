@@ -208,12 +208,18 @@ pub fn decimal_parser() -> Parser(Duration) {
 
   let decimal_parser = {
     use <- p.do(p.alt(p.char("."), p.char(",")))
-    use dec <- p.then(parsers.pos_int() |> p.map(num.decimalify))
+    use dec <- p.then(parsers.pos_int() |> p.map(num.decimalify) |> p.optional)
+    // If only separator found, decimal part is 0.
+    let dec = dec |> option.unwrap(0.0)
     Duration(int, float.round(60.0 *. dec), Pos, Some(DecimalFormat))
     |> p.success
   }
 
-  p.alt(decimal_parser, Duration(int, 0, Pos, Some(DecimalFormat)) |> p.success)
+  let int_parser = {
+    Duration(int, 0, Pos, Some(DecimalFormat)) |> p.success
+  }
+
+  p.alt(decimal_parser, int_parser)
 }
 
 /// A parser for a duration.
