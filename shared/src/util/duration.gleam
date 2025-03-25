@@ -222,6 +222,15 @@ pub fn decimal_parser() -> Parser(Duration) {
   p.alt(decimal_parser, int_parser)
 }
 
+/// A parser for a duration as a single int eger, where the last 2 digits are the minutes,
+/// and everything before the hours.
+pub fn int_parser() -> Parser(Duration) {
+  parsers.pos_int()
+  |> p.map(fn(nr) {
+    from_minutes({ nr / 100 } * 60 + { nr % 100 }) |> with_format(DecimalFormat)
+  })
+}
+
 /// A parser for a duration.
 /// Valid representations are:
 /// 1    -> 1:00

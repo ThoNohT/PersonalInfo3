@@ -7,6 +7,7 @@ import birl.{type Day, type Time, type Weekday, Day}
 import birl/duration
 
 import util/prim
+import util/parser.{type Parser} as p
 
 /// Converts a Day to a Time.
 fn to_time_midnight(day: Day) -> Time {
@@ -128,4 +129,25 @@ pub fn week_number(day: Day) -> Int {
   // Count the number of days between this and the first thursday, and divide by 7 to get weeks.
   let diff = days_diff(thursday_this_week, thursday_first_week) / 7
   diff + 1
+}
+
+/// A parser for a Day, in the format yyyymmdd.
+pub fn int_parser() -> Parser(Day) {
+  use year <- p.then(
+    p.repeat(p.pred(p.char_is_digit), 4)
+    |> p.map(string.concat)
+    |> p.bind(fn(x) { int.parse(x) |> p.from_result }),
+  )
+  use month <- p.then(
+    p.repeat(p.pred(p.char_is_digit), 2)
+    |> p.map(string.concat)
+    |> p.bind(fn(x) { int.parse(x) |> p.from_result }),
+  )
+  use day <- p.then(
+    p.repeat(p.pred(p.char_is_digit), 2)
+    |> p.map(string.concat)
+    |> p.bind(fn(x) { int.parse(x) |> p.from_result }),
+  )
+
+  p.success(Day(year, month, day))
 }

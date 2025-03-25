@@ -1,14 +1,12 @@
-import gleam/int
 import gleam/list
 import gleam/option.{type Option, Some}
 import gleam/string
-
-import birl.{type Day, Day}
 
 import model.{
   type DayEvent, type DayState, ClockEvent, DayState, Gain, HolidayBooking, Home,
   In, Office, Use,
 }
+import util/day
 import util/duration.{type Duration}
 import util/parser.{type Parser} as p
 import util/parsers
@@ -23,40 +21,8 @@ pub type StateInput {
   )
 }
 
-/// Parses a Duration, where the last 2 digits are the minutes, and everything before the hours.
-fn parse_duration() -> Parser(Duration) {
-  parsers.pos_int()
-  |> p.map(fn(nr) {
-    let hours = nr / 100
-    let minutes = nr % 100
-    duration.from_minutes(hours * 60 + minutes)
-    |> duration.with_format(duration.DecimalFormat)
-  })
-}
-
-/// Parses a Day.
-fn parse_date() -> Parser(Day) {
-  use year <- p.then(
-    p.repeat(p.pred(p.char_is_digit), 4)
-    |> p.map(string.concat)
-    |> p.bind(fn(x) { int.parse(x) |> p.from_result }),
-  )
-  use month <- p.then(
-    p.repeat(p.pred(p.char_is_digit), 2)
-    |> p.map(string.concat)
-    |> p.bind(fn(x) { int.parse(x) |> p.from_result }),
-  )
-  use day <- p.then(
-    p.repeat(p.pred(p.char_is_digit), 2)
-    |> p.map(string.concat)
-    |> p.bind(fn(x) { int.parse(x) |> p.from_result }),
-  )
-
-  p.success(Day(year, month, day))
-}
-
-/// Parses the letter that indicates whether lunch is enabled this day.
-fn parse_lunch() -> Parser(Bool) {
+/// A parser for the letter that indicates whether lunch is enabled this day.
+fn lunch_parser() -> Parser(Bool) {
   use ch <- p.then(p.alt(p.char("L"), p.char("N")))
 
   case ch {
@@ -67,8 +33,8 @@ fn parse_lunch() -> Parser(Bool) {
   |> p.success
 }
 
-fn parse_day_event() -> Parser(DayEvent) {
-  use dur <- p.then(parse_duration())
+fn day_event_parser() -> Parser(DayEvent) {
+  use dur <- p.then(duration.int_parser())
   use typ <- p.then(p.pchar())
 
   // Return the right type of day event. Note that clock events need a time,
@@ -88,12 +54,12 @@ fn parse_day_event() -> Parser(DayEvent) {
   }
 }
 
-/// Parses a DayState.
-fn parse_day_state() -> Parser(DayState) {
-  use date <- p.then(parse_date())
-  use target <- p.then(parse_duration())
-  use lunch <- p.then(parse_lunch())
-  use events <- p.then(p.star(parse_day_event()))
+/// A parser for a DayState.
+fn day_state_parser() -> Parser(DayState) {
+  use date <- p.then(day.int_parser())
+  use target <- p.then(duration.int_parser())
+  use lunch <- p.then(lunch_parser())
+  use events <- p.then(p.star(day_event_parser()))
   p.success(DayState(date: date, target: target, lunch: lunch, events: events))
 }
 
@@ -108,7 +74,7 @@ fn parse_line(acc: Option(StateInput), line: String) -> Option(StateInput) {
     case ch {
       // Try to parse the week target.
       "W" -> {
-        use dur <- p.then(parse_duration())
+        use dur <- p.then(duration.int_parser())
         use <- p.do(p.end())
         p.success(StateInput(..si, week_target: dur))
       }
@@ -123,7 +89,7 @@ fn parse_line(acc: Option(StateInput), line: String) -> Option(StateInput) {
       // Otherwise try to parse a day state.
       _ -> {
         use <- p.restore(checkpoint)
-        use st <- p.then(parse_day_state())
+        use st <- p.then(day_state_parser())
         use <- p.do(p.end())
         p.success(StateInput(..si, history: [st, ..si.history]))
       }
