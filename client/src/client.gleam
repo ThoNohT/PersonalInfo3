@@ -273,10 +273,10 @@ fn update(model: Model, msg: Msg) {
           let input_state =
             InputState(
               ..st.input_state,
-              clock_input: validate(string.slice(new_time, 0, 5), p.run(
-                time.parser(),
-                _,
-              )),
+              clock_input: validate(
+                string.slice(new_time, 0, 5),
+                time.parser() |> p.conv,
+              ),
             )
           ef.just(Loaded(State(..st, input_state:)))
         }
@@ -284,10 +284,10 @@ fn update(model: Model, msg: Msg) {
           let input_state =
             InputState(
               ..st.input_state,
-              holiday_input: validate(string.slice(new_duration, 0, 6), p.run(
-                duration.parser(),
-                _,
-              )),
+              holiday_input: validate(
+                string.slice(new_duration, 0, 6),
+                duration.parser() |> p.conv,
+              ),
             )
           ef.just(Loaded(State(..st, input_state:)))
         }

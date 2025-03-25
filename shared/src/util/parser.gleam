@@ -18,8 +18,18 @@ pub fn run(p: Parser(a), input: String) -> Option(a) {
 }
 
 /// Converts a parser to a function that takes a string as input and runs the parser.
+/// Only succeeds if after the parser, the end of the input is reached.
 pub fn conv(p: Parser(a)) -> fn(String) -> Option(a) {
-  fn(input) { run(p, input) }
+  fn(input) {
+    run(
+      {
+        use res <- then(p)
+        use <- do(end())
+        success(res)
+      },
+      input,
+    )
+  }
 }
 
 /// A parser that returns the specified value and doesnt't consume anything.
