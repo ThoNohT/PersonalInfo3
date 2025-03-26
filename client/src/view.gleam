@@ -488,7 +488,7 @@ fn settings_area(st: State, ss: SettingsState) {
 
 pub fn view(model: Model) {
   case model {
-    Login(failed:, ..) -> {
+    Login(failed:, credentials:) -> {
       let error_popup = case failed {
         True ->
           eh.div([a.class("row m-4 alert alert-danger")], [
@@ -507,6 +507,7 @@ pub fn view(model: Model) {
           eh.input([
             a.class("col-8"),
             a.id("username-input"),
+            a.value(credentials.username),
             a.autofocus(True),
             ev.on_input(model.UsernameChanged),
             ev.on_keydown(model.LoginWithEnter),
@@ -517,6 +518,7 @@ pub fn view(model: Model) {
           eh.input([
             a.class("col-8"),
             a.type_("password"),
+            a.value(credentials.password),
             ev.on_input(model.PasswordChanged),
             ev.on_keydown(model.LoginWithEnter),
           ]),
