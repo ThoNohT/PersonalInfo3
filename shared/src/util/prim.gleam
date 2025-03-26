@@ -1,16 +1,24 @@
 import gleam/io
-import gleam/option.{type Option}
+import gleam/option.{type Option, None, Some}
 import gleam/order.{type Order, Eq}
 import gleam/result
 import gleam/string
 
 import birl
 
+/// option.lazy_unwrap, but with a naming that makes it clear that it is used for the visitor pattern.
+pub fn visit(option: Option(a), otherwise: fn() -> a) -> a {
+  case option {
+    Some(val) -> val
+    None -> otherwise()
+  }
+}
+
 /// A very generic version of option.then.
 pub fn then(default: b, option: Option(a), apply fun: fn(a) -> b) -> b {
   case option {
-    option.None -> default
-    option.Some(val) -> fun(val)
+    None -> default
+    Some(val) -> fun(val)
   }
 }
 
@@ -47,7 +55,10 @@ pub fn res(res: Result(a, b), apply fun: fn() -> Result(c, b)) -> Result(c, b) {
 
 /// Converts a time into a date + time string.
 pub fn date_time_string(time: birl.Time) {
-  birl.to_naive_date_string(time) <> "T" <> birl.to_naive_time_string(time) <> "Z"
+  birl.to_naive_date_string(time)
+  <> "T"
+  <> birl.to_naive_time_string(time)
+  <> "Z"
 }
 
 /// Like echo, but doesn't print the location, and allows a prefix.

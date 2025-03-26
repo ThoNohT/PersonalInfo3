@@ -113,12 +113,20 @@ pub type SettingsState {
   )
 }
 
+pub type LoginModel {
+  LoginModel(credentials: Credentials, failed: Bool)
+}
+
+pub type SettingsModel {
+  SettingsModel(state: State, settings: SettingsState)
+}
+
 pub type Model {
-  Login(credentials: Credentials, failed: Bool)
+  Login(model: LoginModel)
   Loading(session: SessionInfo)
   Err(String)
   Loaded(state: State)
-  Settings(state: State, settings: SettingsState)
+  Settings(model: SettingsModel)
 }
 
 pub type State {
