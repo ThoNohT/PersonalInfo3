@@ -31,7 +31,7 @@ fn get_model(model: Model) -> Option(SessionInfo) {
   }
 }
 
-/// Update logic for the err view.
+/// Update logic for the Loading view.
 pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
   use session <- option.then(get_model(model))
 
@@ -73,7 +73,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
   |> Some
 }
 
-/// View logic for the err view.
+/// View logic for the Loading view.
 pub fn view(model: Model) {
   use _ <- option.then(get_model(model))
   eh.div([a.class("row mx-auto container justify-content-center p-4")], [

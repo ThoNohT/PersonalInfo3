@@ -10,7 +10,7 @@ import lustre/event as ev
 
 import model.{
   type Model, type Msg, type SettingsModel, type SettingsState, type State,
-  ApplySettings, CancelSettings, Booking, Settings, SettingsModel, SettingsState,
+  ApplySettings, Booking, CancelSettings, Settings, SettingsModel, SettingsState,
   State, TravelDistanceChanged, TravelDistanceKeyDown, WeekTargetChanged,
   WeekTargetKeyDown, validate,
 }
@@ -29,7 +29,7 @@ fn get_model(model: Model) -> Option(SettingsModel) {
   }
 }
 
-/// Update logic for the err view.
+/// Update logic for the Settings view.
 pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
   use SettingsModel(st, ss) <- option.then(get_model(model))
 
@@ -169,7 +169,7 @@ fn settings_area(st: State, ss: SettingsState) {
   ]
 }
 
-/// View logic for the err view.
+/// View logic for the Settings view.
 pub fn view(model: Model) {
   use SettingsModel(st, ss) <- option.then(get_model(model))
   eh.div([a.class("container col mx-auto")], settings_area(st, ss)) |> Some

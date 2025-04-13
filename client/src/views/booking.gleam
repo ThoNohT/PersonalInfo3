@@ -15,9 +15,9 @@ import gleam/http as ghttp
 import gleam/http/request
 import model.{
   type DayEvent, type DayState, type InputState, type Model, type Msg,
-  type State, type Statistics, AddClockEvent, AddHolidayBooking, ChangeDay,
-  ClockEvent, DayState, DeleteListItem, Gain, HolidayBooking,
-  HolidayInputChanged, HolidayInputKeyDown, Home, In, InputState, Booking, Login,
+  type State, type Statistics, AddClockEvent, AddHolidayBooking, Booking,
+  ChangeDay, ClockEvent, DayState, DeleteListItem, Gain, HolidayBooking,
+  HolidayInputChanged, HolidayInputKeyDown, Home, In, InputState, Login,
   LoginModel, Logout, LunchChanged, NoOp, Office, OpenSettings, Out,
   SelectListItem, Settings, SettingsModel, SettingsState, State, TargetChanged,
   TargetKeyDown, Tick, TimeInputChanged, TimeInputKeyDown, ToggleHome, Use,
@@ -61,7 +61,7 @@ pub fn store_state(model: Model) -> effect.Effect(Msg) {
   }
 }
 
-/// Update logic for the err view.
+/// Update logic for the Booking view.
 pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
   use st <- option.then(get_model(model))
 
@@ -360,7 +360,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
   |> Some
 }
 
-/// View logic for the err view.
+/// View logic for the Booking view.
 pub fn view(model: Model) {
   use st <- option.then(get_model(model))
 

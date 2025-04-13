@@ -14,13 +14,13 @@ fn get_model(model: Model) -> Option(String) {
   }
 }
 
-/// Update logic for the err view.
+/// Update logic for the Err view.
 pub fn update(model: Model, _: Msg) -> Option(#(Model, Effect(Msg))) {
   use _ <- option.then(get_model(model))
   ef.just(model) |> Some
 }
 
-/// View logic for the err view.
+/// View logic for the Err view.
 pub fn view(model: Model) {
   use e <- option.then(get_model(model))
   eh.div([], [e.text("Error: " <> e)]) |> Some

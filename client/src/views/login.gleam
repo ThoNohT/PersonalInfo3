@@ -25,7 +25,7 @@ fn get_model(model: Model) -> Option(LoginModel) {
   }
 }
 
-/// Update logic for the login view.
+/// Update logic for the Login view.
 pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
   use LoginModel(creds, failed) <- option.then(get_model(model))
 
@@ -71,7 +71,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
   |> Some
 }
 
-/// View logic for the login view.
+/// View logic for the Login view.
 pub fn view(model: Model) {
   use LoginModel(creds, failed) <- option.then(get_model(model))
 
