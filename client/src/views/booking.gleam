@@ -17,7 +17,7 @@ import model.{
   type DayEvent, type DayState, type InputState, type Model, type Msg,
   type State, type Statistics, AddClockEvent, AddHolidayBooking, ChangeDay,
   ClockEvent, DayState, DeleteListItem, Gain, HolidayBooking,
-  HolidayInputChanged, HolidayInputKeyDown, Home, In, InputState, Loaded, Login,
+  HolidayInputChanged, HolidayInputKeyDown, Home, In, InputState, Booking, Login,
   LoginModel, Logout, LunchChanged, NoOp, Office, OpenSettings, Out,
   SelectListItem, Settings, SettingsModel, SettingsState, State, TargetChanged,
   TargetKeyDown, Tick, TimeInputChanged, TimeInputKeyDown, ToggleHome, Use,
@@ -38,7 +38,7 @@ import views/shared
 
 fn get_model(model: Model) -> Option(State) {
   case model {
-    Loaded(st) -> Some(st)
+    Booking(st) -> Some(st)
     _ -> None
   }
 }
@@ -47,7 +47,7 @@ fn get_model(model: Model) -> Option(State) {
 /// Will only send a request if the state is loaded.
 pub fn store_state(model: Model) -> effect.Effect(Msg) {
   case model {
-    Loaded(st) -> {
+    Booking(st) -> {
       let request =
         site.request_with_authorization(
           site.base_url() <> "/api/simplestate/pi_history",
@@ -76,7 +76,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
     Tick -> {
       // Only update if the time changed to the precision we observe it (minutes).
       use <- ef.check(model, now != st.now)
-      ef.just(Loaded(
+      ef.just(Booking(
         State(..st, today:, now:)
         |> model.update_history
         |> statistics.recalculate,
@@ -104,7 +104,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
             time.parser() |> p.conv,
           ),
         )
-      ef.just(Loaded(State(..st, input_state:)))
+      ef.just(Booking(State(..st, input_state:)))
     }
     HolidayInputChanged(new_duration) -> {
       let input_state =
@@ -115,7 +115,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
             duration.parser() |> p.conv,
           ),
         )
-      ef.just(Loaded(State(..st, input_state:)))
+      ef.just(Booking(State(..st, input_state:)))
     }
     TargetChanged(nt) -> {
       let target_input =
@@ -127,7 +127,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
       }
       let current_state = current_state_and_update.0
       let new_model =
-        Loaded(
+        Booking(
           State(..st, current_state:, input_state:)
           |> model.update_history
           |> statistics.recalculate,
@@ -139,7 +139,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
     }
     LunchChanged(new_lunch) -> {
       let current_state = DayState(..st.current_state, lunch: new_lunch)
-      Loaded(
+      Booking(
         State(..st, current_state:)
         |> model.update_history
         |> statistics.recalculate,
@@ -172,7 +172,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
           )
         None -> st.input_state
       }
-      ef.just(Loaded(
+      ef.just(Booking(
         State(..st, selected_event_index: selected_idx, input_state:),
       ))
     }
@@ -186,7 +186,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
               ..st.current_state,
               events: list.append(before, af) |> model.recalculate_events,
             )
-          Loaded(
+          Booking(
             State(..st, current_state:)
             |> model.update_history
             |> statistics.recalculate,
@@ -211,7 +211,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
           ..st.current_state,
           events: new_events |> model.recalculate_events,
         )
-      Loaded(
+      Booking(
         State(..st, current_state:)
         |> model.update_history
         |> statistics.recalculate,
@@ -230,7 +230,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
       let events =
         [new_event, ..st.current_state.events] |> model.recalculate_events
       let current_state = DayState(..st.current_state, events:)
-      Loaded(
+      Booking(
         State(..st, current_state:)
         |> model.update_history
         |> statistics.recalculate,
@@ -245,7 +245,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
       let events =
         [new_event, ..st.current_state.events] |> model.recalculate_events
       let current_state = DayState(..st.current_state, events:)
-      Loaded(
+      Booking(
         State(..st, current_state:)
         |> model.update_history
         |> statistics.recalculate,
@@ -278,7 +278,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
             duration.parser() |> p.conv,
           ),
         )
-      ef.just(Loaded(State(..state, input_state:)))
+      ef.just(Booking(State(..state, input_state:)))
     }
     TimeInputKeyDown(amount, dir) -> {
       use to_time <- ef.then(
@@ -295,7 +295,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
           ..st.input_state,
           clock_input: validate(time.to_string(to_time), p.run(time.parser(), _)),
         )
-      ef.just(Loaded(State(..st, input_state:)))
+      ef.just(Booking(State(..st, input_state:)))
     }
     HolidayInputKeyDown(amount, dir) -> {
       use to_duration <- ef.then(
@@ -315,7 +315,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
             duration.parser() |> p.conv,
           ),
         )
-      ef.just(Loaded(State(..st, input_state:)))
+      ef.just(Booking(State(..st, input_state:)))
     }
     TargetKeyDown(amount, dir) -> {
       use to_duration <- ef.then(
@@ -335,7 +335,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
             duration.parser() |> p.conv,
           ),
         )
-      ef.just(Loaded(State(..st, input_state:)))
+      ef.just(Booking(State(..st, input_state:)))
     }
     OpenSettings -> {
       let week_target_input =

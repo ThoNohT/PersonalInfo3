@@ -1,6 +1,6 @@
 import gleam/http as ghttp
 import gleam/order.{Lt}
-import views/loaded
+import views/booking
 
 import birl
 import lustre
@@ -56,7 +56,7 @@ fn update(model: Model, msg: Msg) {
   use <- prim.visit(login.update(model, msg))
   use <- prim.visit(err.update(model, msg))
   use <- prim.visit(loading.update(model, msg))
-  use <- prim.visit(loaded.update(model, msg))
+  use <- prim.visit(booking.update(model, msg))
   use <- prim.visit(settings.update(model, msg))
 
   ef.just(model)
@@ -66,7 +66,7 @@ pub fn view(model: Model) {
   use <- prim.visit(login.view(model))
   use <- prim.visit(err.view(model))
   use <- prim.visit(loading.view(model))
-  use <- prim.visit(loaded.view(model))
+  use <- prim.visit(booking.view(model))
   use <- prim.visit(settings.view(model))
 
   e.none()

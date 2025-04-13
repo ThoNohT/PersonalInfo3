@@ -125,7 +125,7 @@ pub type Model {
   Login(model: LoginModel)
   Loading(session: SessionInfo)
   Err(String)
-  Loaded(state: State)
+  Booking(state: State)
   Settings(model: SettingsModel)
 }
 

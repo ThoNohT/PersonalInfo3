@@ -10,7 +10,7 @@ import lustre/event as ev
 
 import model.{
   type Model, type Msg, type SettingsModel, type SettingsState, type State,
-  ApplySettings, CancelSettings, Loaded, Settings, SettingsModel, SettingsState,
+  ApplySettings, CancelSettings, Booking, Settings, SettingsModel, SettingsState,
   State, TravelDistanceChanged, TravelDistanceKeyDown, WeekTargetChanged,
   WeekTargetKeyDown, validate,
 }
@@ -19,7 +19,7 @@ import util/duration
 import util/effect as ef
 import util/parser as p
 import util/parsers
-import views/loaded.{store_state}
+import views/booking.{store_state}
 import views/shared
 
 fn get_model(model: Model) -> Option(SettingsModel) {
@@ -36,13 +36,13 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
   let and_store = fn(m: Model) { #(m, store_state(m)) }
 
   case msg {
-    CancelSettings -> ef.just(Loaded(st))
+    CancelSettings -> ef.just(Booking(st))
     ApplySettings -> {
       let week_target =
         ss.week_target_input.parsed |> option.unwrap(st.week_target)
       let travel_distance =
         ss.travel_distance_input.parsed |> option.unwrap(st.travel_distance)
-      Loaded(
+      Booking(
         State(..st, week_target:, travel_distance:)
         |> statistics.recalculate,
       )

@@ -10,7 +10,7 @@ import lustre/element/html as eh
 import lustre_http as http
 
 import model.{
-  type Model, type Msg, type State, DayState, Err, InputState, LoadState, Loaded,
+  type Model, type Msg, type State, DayState, Err, InputState, LoadState, Booking,
   Loading, Login, LoginModel, SelectListItem, State, Tick, ValidateSessionCheck,
   unvalidated, validate,
 }
@@ -62,7 +62,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
 
           let state = load_state(session, res, today, now)
           #(
-            Loaded(state),
+            Booking(state),
             effect.batch([ef.dispatch(SelectListItem(0)), ef.every(1000, Tick)]),
           )
         }
