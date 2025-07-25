@@ -116,6 +116,7 @@ pub fn recalculate(state: State) -> State {
     state.history
     |> list.filter(fn(ds) {
       day.week_number(ds.date) == day.week_number(st.date)
+      && ds.date.year == st.date.year
       && day.compare(ds.date, st.date) != Gt
     })
     |> list.map(calculate_day(_, state.today, state.now))
