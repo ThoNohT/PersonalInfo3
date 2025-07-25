@@ -90,7 +90,11 @@ pub fn calculate_day(
   // calculate the extra time from the in state to now.
   let stats = case after_fold.1, today == ds.date {
     Some(in_state), True ->
-      add_hours(after_fold.0, duration.between(in_state.1, now), Some(in_state.0))
+      add_hours(
+        after_fold.0,
+        duration.between(in_state.1, now),
+        Some(in_state.0),
+      )
     _, _ -> after_fold.0
   }
 
@@ -113,8 +117,8 @@ pub fn calculate_day(
     ..stats,
     eta: duration.subtract(ds.target, stats.total),
     travel_distance: case duration.is_zero(stats.total_office) {
-      True -> travel_distance
-      False -> 0.0
+      True -> 0.0
+      False -> travel_distance
     },
   )
 }
@@ -140,7 +144,10 @@ pub fn recalculate(state: State) -> State {
       && day.compare(ds.date, st.date) != Gt
     })
     |> list.map(calculate_day(_, state.today, state.now, state.travel_distance))
-    |> list.fold(Statistics(..zero(state.today), week_eta: state.week_target), folder)
+    |> list.fold(
+      Statistics(..zero(state.today), week_eta: state.week_target),
+      folder,
+    )
 
   // Calculate holiday.
   let holiday_folder = fn(acc: Statistics, ds: DayState) {

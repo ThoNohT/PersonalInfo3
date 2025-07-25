@@ -43,8 +43,13 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
 /// A duration is printed in time and decimal format, a float is simply displayed.
 fn format_stat(value: DurationOrFloat) -> String {
   case value {
-    DofDuration(d) -> duration.to_string(d)
-    DofFloat(f) -> float.to_string(f)
+    DofDuration(d) ->
+      case duration.is_zero(d) {
+        True -> ""
+        False -> duration.to_string(d)
+      }
+    DofFloat(f) if f >. 0.0 -> float.to_string(f)
+    _ -> ""
   }
 }
 
@@ -82,7 +87,8 @@ pub fn view(model: Model) {
     ])
   }
 
-  eh.div([], [
+  eh.div([a.class("container row mx-auto")], [
+    eh.h1([], [e.text("Week overview")]),
     eh.table([a.class("table table-bordered table-striped")], [
       eh.thead([], [
         eh.tr([], [

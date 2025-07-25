@@ -92,7 +92,7 @@ pub fn zero() {
 
 /// Indicates whether this duration is of zero length.
 pub fn is_zero(duration: Duration) {
-  duration.hours > 0 || duration.minutes > 0
+  duration.hours == 0 && duration.minutes == 0
 }
 
 /// Returns a duration of the specified number of hours.
