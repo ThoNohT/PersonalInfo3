@@ -187,7 +187,10 @@ pub fn recalculate(state: State) -> State {
 }
 
 /// Calculates week statistics for the week the current day is in.
-pub fn calculate_week_statistics(state: State) -> WeekStatistics {
+pub fn calculate_week_statistics(
+  state: State,
+  include_future: Bool,
+) -> WeekStatistics {
   let st = state.current_state
 
   // Calculate day statistics for all registered days of the week.
@@ -196,7 +199,7 @@ pub fn calculate_week_statistics(state: State) -> WeekStatistics {
     |> list.filter(fn(ds) {
       day.week_number(ds.date) == day.week_number(st.date)
       && ds.date.year == st.date.year
-      && day.compare(ds.date, st.date) != Gt
+      && { day.compare(ds.date, st.date) != Gt || include_future }
     })
     |> list.map(fn(day) {
       #(

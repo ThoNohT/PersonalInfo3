@@ -359,7 +359,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
     LoadWeekOverview -> {
       ef.just(WeekOverview(
         state: st,
-        stats: statistics.calculate_week_statistics(st),
+        stats: statistics.calculate_week_statistics(st, True),
       ))
     }
     LoadHolidayOverview -> {
