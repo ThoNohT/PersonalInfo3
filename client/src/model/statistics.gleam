@@ -37,15 +37,15 @@ pub fn calculate_day(ds: DayState, today: Day, now: Time) -> DayStatistics {
   let add_hours = fn(
     stats: DayStatistics,
     duration: Duration,
-    loc: ClockLocation,
+    loc: Option(ClockLocation),
   ) -> DayStatistics {
     let total = duration.add(stats.total, duration)
     let total_office = {
-      use <- prim.check(stats.total_office, loc == Office)
+      use <- prim.check(stats.total_office, loc == Some(Office))
       duration.add(stats.total_office, duration)
     }
     let total_home = {
-      use <- prim.check(stats.total_home, loc == Home)
+      use <- prim.check(stats.total_home, loc == Some(Home))
       duration.add(stats.total_home, duration)
     }
 
@@ -55,8 +55,14 @@ pub fn calculate_day(ds: DayState, today: Day, now: Time) -> DayStatistics {
   let folder = fn(acc: #(DayStatistics, Option(InState)), event: DayEvent) {
     let stats = acc.0
     case event {
-      // Holiday is not maintained in day statistics.
-      HolidayBooking(..) -> acc
+      // Holiday use adds to the total time, but not office or home.
+      HolidayBooking(_, amount, Use) -> {
+        #(add_hours(stats, amount, None), None)
+      }
+
+      // Holiday gain is not maintained in day statistics.
+      HolidayBooking(_, _, Gain) -> acc
+
       // When clocking in, save the current state.
       ClockEvent(_, time, loc, In) -> #(stats, Some(#(loc, time)))
 
@@ -64,7 +70,7 @@ pub fn calculate_day(ds: DayState, today: Day, now: Time) -> DayStatistics {
       ClockEvent(_, time, _, Out) -> {
         let assert Some(in_state) = acc.1
         let duration = duration.between(in_state.1, time)
-        #(add_hours(stats, duration, in_state.0), None)
+        #(add_hours(stats, duration, Some(in_state.0)), None)
       }
     }
   }
@@ -77,7 +83,7 @@ pub fn calculate_day(ds: DayState, today: Day, now: Time) -> DayStatistics {
   // calculate the extra time from the in state to now.
   let stats = case after_fold.1, today == ds.date {
     Some(in_state), True ->
-      add_hours(after_fold.0, duration.between(in_state.1, now), in_state.0)
+      add_hours(after_fold.0, duration.between(in_state.1, now), Some(in_state.0))
     _, _ -> after_fold.0
   }
 
@@ -88,8 +94,8 @@ pub fn calculate_day(ds: DayState, today: Day, now: Time) -> DayStatistics {
     True, True -> {
       let half_hour = duration.minutes(30, Neg)
       case duration.compare(stats.total_office, stats.total_home) {
-        Lt -> add_hours(stats, half_hour, Home)
-        _ -> add_hours(stats, half_hour, Office)
+        Lt -> add_hours(stats, half_hour, Some(Home))
+        _ -> add_hours(stats, half_hour, Some(Office))
       }
     }
     _, _ -> stats
