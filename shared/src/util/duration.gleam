@@ -1,4 +1,5 @@
 import gleam/float
+
 import gleam/int
 import gleam/option.{type Option, None, Some}
 import gleam/order.{type Order, Eq}
@@ -81,6 +82,11 @@ pub fn later(time: time.Time, duration: Duration) -> Option(time.Time) {
 /// Returns a duration of zero length.
 pub fn zero() {
   Duration(0, 0, Pos, None)
+}
+
+/// Indicates whether this duration is of zero length.
+pub fn is_zero(duration: Duration) {
+  duration.hours > 0 || duration.minutes > 0
 }
 
 /// Returns a duration of the specified number of hours.

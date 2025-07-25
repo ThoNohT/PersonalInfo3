@@ -124,6 +124,8 @@ pub type SettingsModel {
 pub type Model {
   Login(model: LoginModel)
   Loading(session: SessionInfo)
+  WeekOverview(state: State, stats: WeekStatistics)
+  HolidayOverview(state: State)
   Err(String)
   Booking(state: State)
   Settings(model: SettingsModel)
@@ -150,6 +152,7 @@ pub type DayStatistics {
     total: Duration,
     total_office: Duration,
     total_home: Duration,
+    travel_distance: Float,
   )
 }
 
@@ -159,6 +162,18 @@ pub type Statistics {
     week: Duration,
     week_eta: Duration,
     remaining_holiday: Duration,
+  )
+}
+
+pub type WeekStatistics {
+  WeekStatistics(
+    monday: DayStatistics,
+    tuesday: DayStatistics,
+    wednesday: DayStatistics,
+    thursday: DayStatistics,
+    friday: DayStatistics,
+    saturday: DayStatistics,
+    sunday: DayStatistics,
   )
 }
 
@@ -288,6 +303,10 @@ pub type Msg {
   WeekTargetKeyDown(amount: TimeMoveAmount, dir: MoveDirection)
   TravelDistanceChanged(new_distance: String)
   TravelDistanceKeyDown(amount: FloatMoveAmount, dir: MoveDirection)
+
+  LoadWeekOverview
+
+  LoadHolidayOverview
 }
 
 pub fn recalculate_events(events: List(DayEvent)) -> List(DayEvent) {

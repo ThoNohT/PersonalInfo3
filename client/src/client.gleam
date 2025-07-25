@@ -1,6 +1,8 @@
 import gleam/http as ghttp
 import gleam/order.{Lt}
 import views/booking
+import views/holiday_overview
+import views/week_overview
 
 import birl
 import lustre
@@ -58,6 +60,8 @@ fn update(model: Model, msg: Msg) {
   use <- prim.visit(loading.update(model, msg))
   use <- prim.visit(booking.update(model, msg))
   use <- prim.visit(settings.update(model, msg))
+  use <- prim.visit(week_overview.update(model, msg))
+  use <- prim.visit(holiday_overview.update(model, msg))
 
   ef.just(model)
 }
@@ -68,6 +72,8 @@ pub fn view(model: Model) {
   use <- prim.visit(loading.view(model))
   use <- prim.visit(booking.view(model))
   use <- prim.visit(settings.view(model))
+  use <- prim.visit(week_overview.view(model))
+  use <- prim.visit(holiday_overview.view(model))
 
   e.none()
 }

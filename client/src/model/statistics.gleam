@@ -3,13 +3,15 @@
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/order.{Gt, Lt}
+import gleam/result
 
-import birl.{type Day}
+import birl.{type Day, type Weekday}
 
 import model.{
   type ClockLocation, type DayEvent, type DayState, type DayStatistics,
-  type State, type Statistics, ClockEvent, DayState, DayStatistics, Gain,
-  HolidayBooking, Home, In, Office, Out, State, Statistics, Use,
+  type State, type Statistics, type WeekStatistics, ClockEvent, DayState,
+  DayStatistics, Gain, HolidayBooking, Home, In, Office, Out, State, Statistics,
+  Use, WeekStatistics,
 }
 import util/day
 import util/duration.{type Duration}
@@ -20,7 +22,7 @@ import util/time.{type Time}
 /// Creates empty day statistics.
 fn day_zero() -> DayStatistics {
   let z = duration.zero()
-  DayStatistics(z, z, z, z)
+  DayStatistics(z, z, z, z, 0.0)
 }
 
 /// Creates empty statistics.
@@ -32,7 +34,12 @@ type InState =
   #(ClockLocation, Time)
 
 /// Calculates the statistics for a single day.
-pub fn calculate_day(ds: DayState, today: Day, now: Time) -> DayStatistics {
+pub fn calculate_day(
+  ds: DayState,
+  today: Day,
+  now: Time,
+  travel_distance: Float,
+) -> DayStatistics {
   // Helper to add hours to the correct location in statistics.
   let add_hours = fn(
     stats: DayStatistics,
@@ -102,7 +109,14 @@ pub fn calculate_day(ds: DayState, today: Day, now: Time) -> DayStatistics {
   }
 
   // Fill in the remaining.
-  DayStatistics(..stats, eta: duration.subtract(ds.target, stats.total))
+  DayStatistics(
+    ..stats,
+    eta: duration.subtract(ds.target, stats.total),
+    travel_distance: case duration.is_zero(stats.total_office) {
+      True -> travel_distance
+      False -> 0.0
+    },
+  )
 }
 
 /// Recalculates the statistics in the provided state.
@@ -125,7 +139,7 @@ pub fn recalculate(state: State) -> State {
       && ds.date.year == st.date.year
       && day.compare(ds.date, st.date) != Gt
     })
-    |> list.map(calculate_day(_, state.today, state.now))
+    |> list.map(calculate_day(_, state.today, state.now, state.travel_distance))
     |> list.fold(Statistics(..zero(), week_eta: state.week_target), folder)
 
   // Calculate holiday.
@@ -153,6 +167,50 @@ pub fn recalculate(state: State) -> State {
     |> list.fold(stats, holiday_folder)
 
   let stats =
-    Statistics(..stats, current_day: calculate_day(st, state.today, state.now))
+    Statistics(
+      ..stats,
+      current_day: calculate_day(
+        st,
+        state.today,
+        state.now,
+        state.travel_distance,
+      ),
+    )
   State(..state, stats:)
+}
+
+/// Calculates week statistics for the week the current day is in.
+pub fn calculate_week_statistics(state: State) -> WeekStatistics {
+  let st = state.current_state
+
+  // Calculate day statistics for all registered days of the week.
+  let stats =
+    state.history
+    |> list.filter(fn(ds) {
+      day.week_number(ds.date) == day.week_number(st.date)
+      && day.compare(ds.date, st.date) != Gt
+    })
+    |> list.map(fn(day) {
+      #(
+        day.date,
+        calculate_day(day, state.today, state.now, state.travel_distance),
+      )
+    })
+
+  let find_day = fn(day: Weekday) {
+    list.find(stats, fn(tuple) { day.weekday(tuple.0) == day })
+    |> result.map(fn(tuple) { tuple.1 })
+    |> result.unwrap(day_zero())
+  }
+
+  // Find the statistics for each of the days of the week.
+  WeekStatistics(
+    monday: find_day(birl.Mon),
+    tuesday: find_day(birl.Tue),
+    wednesday: find_day(birl.Wed),
+    thursday: find_day(birl.Thu),
+    friday: find_day(birl.Fri),
+    saturday: find_day(birl.Sat),
+    sunday: find_day(birl.Sun),
+  )
 }

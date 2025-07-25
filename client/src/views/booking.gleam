@@ -17,11 +17,12 @@ import model.{
   type DayEvent, type DayState, type InputState, type Model, type Msg,
   type State, type Statistics, AddClockEvent, AddHolidayBooking, Booking,
   ChangeDay, ClockEvent, DayState, DeleteListItem, Gain, HolidayBooking,
-  HolidayInputChanged, HolidayInputKeyDown, Home, In, InputState, Login,
-  LoginModel, Logout, LunchChanged, NoOp, Office, OpenSettings, Out,
-  SelectListItem, Settings, SettingsModel, SettingsState, State, TargetChanged,
-  TargetKeyDown, Tick, TimeInputChanged, TimeInputKeyDown, ToggleHome, Use,
-  is_valid, validate,
+  HolidayInputChanged, HolidayInputKeyDown, HolidayOverview, Home, In,
+  InputState, LoadHolidayOverview, LoadWeekOverview, Login, LoginModel, Logout,
+  LunchChanged, NoOp, Office, OpenSettings, Out, SelectListItem, Settings,
+  SettingsModel, SettingsState, State, TargetChanged, TargetKeyDown, Tick,
+  TimeInputChanged, TimeInputKeyDown, ToggleHome, Use, WeekOverview, is_valid,
+  validate,
 }
 import model/statistics
 import shared_model.{Credentials}
@@ -355,6 +356,15 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
         )),
       )
     }
+    LoadWeekOverview -> {
+      ef.just(WeekOverview(
+        state: st,
+        stats: statistics.calculate_week_statistics(st),
+      ))
+    }
+    LoadHolidayOverview -> {
+      ef.just(HolidayOverview(state: st))
+    }
     _ -> ef.just(model)
   }
   |> Some
@@ -603,30 +613,48 @@ fn input_area(is: InputState, ds: Statistics) {
       // Statistics
       eh.h3([a.class("text-center")], [e.text("Statistics")]),
       eh.hr([]),
-      eh.div([a.class("row p-2")], [
+      eh.div([a.class("row p-2 align-content-middle")], [
         eh.b([a.class("col-3")], [e.text("Total: ")]),
         e.text(duration.to_string(ds.current_day.total)),
       ]),
-      eh.div([a.class("row p-2")], [
+      eh.div([a.class("row p-2 align-content-middle")], [
         eh.b([a.class("col-3")], [e.text("Total (office): ")]),
         e.text(duration.to_string(ds.current_day.total_office)),
       ]),
-      eh.div([a.class("row p-2")], [
+      eh.div([a.class("row p-2 align-content-middle")], [
         eh.b([a.class("col-3")], [e.text("Total (home): ")]),
         e.text(duration.to_string(ds.current_day.total_home)),
       ]),
       eh.hr([]),
-      eh.div([a.class("row p-2")], [
-        eh.b([a.class("col-3")], [e.text("Week: ")]),
+      eh.div([a.class("row p-2 align-content-middle")], [
+        eh.b([a.class("col-3 d-flex col justify-content-between")], [
+          e.text("Week: "),
+          eh.button(
+            [
+              a.class("btn btn-sm btn-outline-dark"),
+              ev.on_click(LoadWeekOverview),
+            ],
+            [e.text("🔗")],
+          ),
+        ]),
         e.text(duration.to_string(ds.week)),
       ]),
-      eh.div([a.class("row p-2")], [
+      eh.div([a.class("row p-2 align-content-middle")], [
         eh.b([a.class("col-3")], [e.text("ETA: ")]),
         e.text(eta_text),
       ]),
       eh.hr([]),
-      eh.div([a.class("row p-2")], [
-        eh.b([a.class("col-3")], [e.text("Holiday left: ")]),
+      eh.div([a.class("row p-2 align-content-middle")], [
+        eh.b([a.class("col-3 d-flex col justify-content-between")], [
+          e.text("Holiday left: "),
+          eh.button(
+            [
+              a.class("btn btn-sm btn-outline-dark"),
+              ev.on_click(LoadHolidayOverview),
+            ],
+            [e.text("🔗")],
+          ),
+        ]),
         e.text(duration.to_string(ds.remaining_holiday)),
       ]),
     ]),
