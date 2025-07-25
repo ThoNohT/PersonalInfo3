@@ -96,7 +96,7 @@ fn load_state(
   // Fixed values:
   let input_state = InputState(unvalidated(), unvalidated(), unvalidated())
   let selected_event_index = None
-  let stats = statistics.zero()
+  let stats = statistics.zero(today)
 
   // Make some current state, it will be replaced by add_day_state.
   let current_state =

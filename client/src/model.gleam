@@ -148,6 +148,7 @@ pub type State {
 
 pub type DayStatistics {
   DayStatistics(
+    day: Day,
     eta: Duration,
     total: Duration,
     total_office: Duration,
@@ -305,6 +306,7 @@ pub type Msg {
   TravelDistanceKeyDown(amount: FloatMoveAmount, dir: MoveDirection)
 
   LoadWeekOverview
+  CloseWeekOverview
 
   LoadHolidayOverview
 }

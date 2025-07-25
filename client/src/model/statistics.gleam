@@ -20,14 +20,14 @@ import util/prim
 import util/time.{type Time}
 
 /// Creates empty day statistics.
-fn day_zero() -> DayStatistics {
+fn day_zero(day: Day) -> DayStatistics {
   let z = duration.zero()
-  DayStatistics(z, z, z, z, 0.0)
+  DayStatistics(day, z, z, z, z, 0.0)
 }
 
 /// Creates empty statistics.
-pub fn zero() -> Statistics {
-  Statistics(day_zero(), duration.zero(), duration.zero(), duration.zero())
+pub fn zero(day: Day) -> Statistics {
+  Statistics(day_zero(day), duration.zero(), duration.zero(), duration.zero())
 }
 
 type InState =
@@ -84,7 +84,7 @@ pub fn calculate_day(
 
   // First loop over all clock events during this day to gather 
   // the completed clock in duration.
-  let after_fold = ds.events |> list.fold(#(day_zero(), None), folder)
+  let after_fold = ds.events |> list.fold(#(day_zero(ds.date), None), folder)
 
   // If there is an in state left, and the day is today,
   // calculate the extra time from the in state to now.
@@ -140,7 +140,7 @@ pub fn recalculate(state: State) -> State {
       && day.compare(ds.date, st.date) != Gt
     })
     |> list.map(calculate_day(_, state.today, state.now, state.travel_distance))
-    |> list.fold(Statistics(..zero(), week_eta: state.week_target), folder)
+    |> list.fold(Statistics(..zero(state.today), week_eta: state.week_target), folder)
 
   // Calculate holiday.
   let holiday_folder = fn(acc: Statistics, ds: DayState) {
@@ -188,6 +188,7 @@ pub fn calculate_week_statistics(state: State) -> WeekStatistics {
     state.history
     |> list.filter(fn(ds) {
       day.week_number(ds.date) == day.week_number(st.date)
+      && ds.date.year == st.date.year
       && day.compare(ds.date, st.date) != Gt
     })
     |> list.map(fn(day) {
@@ -200,7 +201,7 @@ pub fn calculate_week_statistics(state: State) -> WeekStatistics {
   let find_day = fn(day: Weekday) {
     list.find(stats, fn(tuple) { day.weekday(tuple.0) == day })
     |> result.map(fn(tuple) { tuple.1 })
-    |> result.unwrap(day_zero())
+    |> result.unwrap(day_zero(day.day_this_week(st.date, day)))
   }
 
   // Find the statistics for each of the days of the week.

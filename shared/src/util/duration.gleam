@@ -11,6 +11,12 @@ import util/parsers
 import util/prim
 import util/time
 
+/// Either a duration or a float.
+pub type DurationOrFloat {
+  DofDuration(duration: Duration)
+  DofFloat(float: Float)
+}
+
 /// The different ways Duration can be formatted.
 pub type DurationFormat {
   /// The time is formatted with a separating colon, where the second part are minutes.

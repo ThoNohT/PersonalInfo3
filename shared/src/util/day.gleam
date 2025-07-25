@@ -6,8 +6,8 @@ import gleam/string
 import birl.{type Day, type Time, type Weekday, Day}
 import birl/duration
 
-import util/prim
 import util/parser.{type Parser} as p
+import util/prim
 
 /// Converts a Day to a Time.
 fn to_time_midnight(day: Day) -> Time {
@@ -106,7 +106,7 @@ pub fn weekday_to_int(weekday: Weekday) -> Int {
 
 /// Returns the day of the specified weekday, in the same week as the provided Day is in.
 /// Weeks start at monday.
-fn day_this_week(day: Day, wkday: Weekday) -> Day {
+pub fn day_this_week(day: Day, wkday: Weekday) -> Day {
   let cur_weekday = weekday(day) |> weekday_to_int
   let desired_weekday = weekday_to_int(wkday)
 

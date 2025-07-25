@@ -632,6 +632,7 @@ fn input_area(is: InputState, ds: Statistics) {
           eh.button(
             [
               a.class("btn btn-sm btn-outline-dark"),
+              a.style([#("font-size", "10px"), #("padding", "0 0.25rem")]),
               ev.on_click(LoadWeekOverview),
             ],
             [e.text("🔗")],
@@ -646,14 +647,15 @@ fn input_area(is: InputState, ds: Statistics) {
       eh.hr([]),
       eh.div([a.class("row p-2 align-content-middle")], [
         eh.b([a.class("col-3 d-flex col justify-content-between")], [
-          e.text("Holiday left: "),
-          eh.button(
-            [
-              a.class("btn btn-sm btn-outline-dark"),
-              ev.on_click(LoadHolidayOverview),
-            ],
-            [e.text("🔗")],
-          ),
+        e.text("Holiday left: "),
+        //  eh.button(
+        //    [
+        //      a.class("btn btn-sm btn-outline-dark"),
+        //      a.style([#("font-size", "10px"), #("padding", "0 0.25rem")]),
+        //      ev.on_click(LoadHolidayOverview),
+        //    ],
+        //    [e.text("🔗")],
+        //  ),
         ]),
         e.text(duration.to_string(ds.remaining_holiday)),
       ]),
