@@ -106,7 +106,7 @@ pub fn view(model: Model) {
       ]),
     ]),
     eh.button(
-      [a.class("btn btn-sm btn-outline-dark"), ev.on_click(ReturnToBooking)],
+      [a.class("btn btn-sm btn-outline-dark m-4"), ev.on_click(ReturnToBooking)],
       [e.text("Close")],
     ),
   ])

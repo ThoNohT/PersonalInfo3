@@ -294,7 +294,8 @@ pub fn calculate_holiday_statistics(state: State) -> HolidayStatistics {
       let #(date, event) = e
       case event {
         HolidayBooking(_, amount, Gain) -> Ok(#(date, amount))
-        HolidayBooking(_, amount, Use) -> Ok(#(date, amount))
+        HolidayBooking(_, amount, Use) ->
+          Ok(#(date, duration.subtract(duration.zero(), amount)))
         _ -> Error("")
       }
     })
