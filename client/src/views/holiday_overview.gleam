@@ -96,6 +96,7 @@ fn month_card(stats: HolidayMonthStatistics) {
           }),
       ),
     ]),
+    eh.hr([]),
     eh.table([a.class("table table-bordered table-striped p-4")], [
       eh.tbody([], [
         eh.tr([], [
