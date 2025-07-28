@@ -39,7 +39,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
   |> Some
 }
 
-fn card_custom(title: String, contents: List(vdom.Element(a))) {
+fn card(title: String, contents: List(vdom.Element(a))) {
   eh.div([a.class("card m-2")], [
     eh.div([a.class("card-body")], [
       eh.h3([a.class("card-title")], [e.text(title)]),
@@ -48,21 +48,28 @@ fn card_custom(title: String, contents: List(vdom.Element(a))) {
   ])
 }
 
-fn card_text(title: String, texts: List(String)) {
-  card_custom(
-    title,
-    list.map(texts, fn(text) { eh.p([a.class("card-text")], [e.text(text)]) }),
-  )
-}
-
 fn remaining_card(remaining: Duration) {
   use <- prim.check(None, !{ duration.is_zero(remaining) })
-  card_text("Remaining from previous years", [duration.to_string(remaining)])
+  card("Previous years", [
+    eh.table([a.class("table table-bordered table-striped p-4")], [
+      eh.tbody([], [
+        eh.tr([], [
+          eh.th([a.class("col-2 text-end")], [eh.text("Remaining")]),
+          eh.td([a.class("col-5")], [
+            eh.text(duration.to_time_string(remaining)),
+          ]),
+          eh.td([a.class("col-5")], [
+            eh.text(duration.to_decimal_string(remaining, 2)),
+          ]),
+        ]),
+      ]),
+    ]),
+  ])
   |> Some
 }
 
 fn month_card(stats: HolidayMonthStatistics) {
-  card_custom(month.month_to_string(stats.month), [
+  card(month.month_to_string(stats.month), [
     eh.table([a.class("table table-bordered table-striped p-4")], [
       eh.thead([], [
         eh.tr([], [
