@@ -183,7 +183,17 @@ pub type WeekStatistics {
 pub type HolidayStatistics {
   HolidayStatistics(
     remaining_from_last_year: Duration,
-    holiday_per_day: List(#(Day, Duration)),
+    months: List(HolidayMonthStatistics),
+  )
+}
+
+pub type HolidayMonthStatistics {
+  HolidayMonthStatistics(
+    month: Int,
+    holiday_per_day: List(#(Int, Duration)),
+    running_total: Duration,
+    used_this_month: Duration,
+    gained_this_month: Duration,
   )
 }
 

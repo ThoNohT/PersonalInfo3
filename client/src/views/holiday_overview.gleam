@@ -1,4 +1,5 @@
 import gleam/option.{type Option, None, Some}
+import util/duration
 
 import lustre/attribute as a
 import lustre/effect.{type Effect}
@@ -31,13 +32,25 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
   |> Some
 }
 
+fn card(title: String, text: String) {
+  eh.div([a.class("card")], [
+    eh.div([a.class("card-body")], [
+      eh.h5([a.class("card-title")], [e.text(title)]),
+      eh.p([a.class("card-text")], [e.text(text)]),
+    ]),
+  ])
+}
+
 /// View logic for the HolidayOverview view.
 pub fn view(model: Model) {
-  use #(_state, _stats) <- option.then(get_model(model))
+  use #(_, stats) <- option.then(get_model(model))
 
   eh.div([a.class("container row mx-auto")], [
     eh.h1([], [e.text("Holiday overview")]),
-    eh.table([a.class("table table-bordered table-striped")], []),
+    card(
+      "Remaining from previous years",
+      duration.to_time_string(stats.remaining_from_last_year),
+    ),
     eh.button(
       [a.class("btn btn-sm btn-outline-dark"), ev.on_click(ReturnToBooking)],
       [e.text("Close")],

@@ -1,5 +1,7 @@
 //// A module dedicated to calculating statistics.
 
+import gleam/dict
+import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/order.{Gt, Lt}
@@ -9,9 +11,10 @@ import birl.{type Day, type Weekday}
 
 import model.{
   type ClockLocation, type DayEvent, type DayState, type DayStatistics,
-  type HolidayStatistics, type State, type Statistics, type WeekStatistics,
-  ClockEvent, DayState, DayStatistics, Gain, HolidayBooking, HolidayStatistics,
-  Home, In, Office, Out, State, Statistics, Use, WeekStatistics,
+  type HolidayMonthStatistics, type HolidayStatistics, type State,
+  type Statistics, type WeekStatistics, ClockEvent, DayState, DayStatistics,
+  Gain, HolidayBooking, HolidayMonthStatistics, HolidayStatistics, Home, In,
+  Office, Out, State, Statistics, Use, WeekStatistics,
 }
 import util/day
 import util/duration.{type Duration}
@@ -226,6 +229,47 @@ pub fn calculate_week_statistics(
   )
 }
 
+/// Calculates holiday statistics for a specific month.
+fn calculate_month_statistics(
+  running_total: Duration,
+  month_info: #(Int, List(#(Day, Duration))),
+) -> #(Duration, HolidayMonthStatistics) {
+  let #(month, day_events) = month_info
+
+  let #(new_total, total_used, total_gained) =
+    day_events
+    |> list.fold(
+      #(running_total, duration.zero(), duration.zero()),
+      fn(total, event) {
+        case duration.is_positive(event.1) {
+          True -> #(
+            duration.add(total.0, event.1),
+            total.1,
+            duration.add(total.2, event.1),
+          )
+          False -> #(
+            duration.add(total.0, event.1),
+            duration.add(total.1, event.1),
+            total.2,
+          )
+        }
+      },
+    )
+
+  #(
+    new_total,
+    HolidayMonthStatistics(
+      month: month,
+      holiday_per_day: day_events
+        |> list.sort(fn(l, r) { day.compare(l.0, r.0) })
+        |> list.map(fn(t) { #({ t.0 }.date, t.1) }),
+      running_total: new_total,
+      used_this_month: total_used,
+      gained_this_month: total_gained,
+    ),
+  )
+}
+
 // Calculates holiday statistics for the year the current day is in.
 pub fn calculate_holiday_statistics(state: State) -> HolidayStatistics {
   let st = state.current_state
@@ -242,17 +286,22 @@ pub fn calculate_holiday_statistics(state: State) -> HolidayStatistics {
       }
     })
 
-  let per_day =
+  let #(_, per_month) =
     state.history
     |> list.filter(fn(ds) { ds.date.year == st.date.year })
     |> list.flat_map(fn(ds) { ds.events |> list.map(fn(ev) { #(ds.date, ev) }) })
     |> list.filter_map(fn(e) {
-      case e.1 {
-        HolidayBooking(_, amount, Gain) -> Ok(#(e.0, amount))
-        HolidayBooking(_, amount, Use) -> Ok(#(e.0, amount))
+      let #(date, event) = e
+      case event {
+        HolidayBooking(_, amount, Gain) -> Ok(#(date, amount))
+        HolidayBooking(_, amount, Use) -> Ok(#(date, amount))
         _ -> Error("")
       }
     })
+    |> list.group(fn(d) { { d.0 }.month })
+    |> dict.to_list
+    |> list.sort(fn(l, r) { int.compare(l.0, r.0) })
+    |> list.map_fold(from_last_years, calculate_month_statistics)
 
-  HolidayStatistics(from_last_years, per_day)
+  HolidayStatistics(from_last_years, per_month)
 }
