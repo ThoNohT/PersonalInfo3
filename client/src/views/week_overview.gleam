@@ -10,13 +10,12 @@ import lustre/event as ev
 
 import model.{
   type DayStatistics, type Model, type Msg, type State, type WeekStatistics,
-  Booking, CloseWeekOverview, DayStatistics, State, WeekOverview,
+  Booking, DayStatistics, ReturnToBooking, State, WeekOverview,
 }
 
 import util/day
 import util/duration.{type DurationOrFloat, DofDuration, DofFloat}
 import util/effect as ef
-import util/time
 
 fn get_model(model: Model) -> Option(#(State, WeekStatistics)) {
   case model {
@@ -27,13 +26,10 @@ fn get_model(model: Model) -> Option(#(State, WeekStatistics)) {
 
 /// Update logic for the WeekOverview view.
 pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
-  use st <- option.then(get_model(model))
-
-  let _today = time.today()
-  let _now = time.now()
+  use #(st, _) <- option.then(get_model(model))
 
   case msg {
-    CloseWeekOverview -> ef.just(Booking(st.0))
+    ReturnToBooking -> ef.just(Booking(st))
     _ -> ef.just(model)
   }
   |> Some
@@ -110,7 +106,7 @@ pub fn view(model: Model) {
       ]),
     ]),
     eh.button(
-      [a.class("btn btn-sm btn-outline-dark"), ev.on_click(CloseWeekOverview)],
+      [a.class("btn btn-sm btn-outline-dark"), ev.on_click(ReturnToBooking)],
       [e.text("Close")],
     ),
   ])

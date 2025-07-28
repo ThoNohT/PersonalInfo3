@@ -9,9 +9,9 @@ import birl.{type Day, type Weekday}
 
 import model.{
   type ClockLocation, type DayEvent, type DayState, type DayStatistics,
-  type State, type Statistics, type WeekStatistics, ClockEvent, DayState,
-  DayStatistics, Gain, HolidayBooking, Home, In, Office, Out, State, Statistics,
-  Use, WeekStatistics,
+  type HolidayStatistics, type State, type Statistics, type WeekStatistics,
+  ClockEvent, DayState, DayStatistics, Gain, HolidayBooking, HolidayStatistics,
+  Home, In, Office, Out, State, Statistics, Use, WeekStatistics,
 }
 import util/day
 import util/duration.{type Duration}
@@ -224,4 +224,35 @@ pub fn calculate_week_statistics(
     saturday: find_day(birl.Sat),
     sunday: find_day(birl.Sun),
   )
+}
+
+// Calculates holiday statistics for the year the current day is in.
+pub fn calculate_holiday_statistics(state: State) -> HolidayStatistics {
+  let st = state.current_state
+
+  let from_last_years =
+    state.history
+    |> list.filter(fn(ds) { ds.date.year < st.date.year })
+    |> list.flat_map(fn(ds) { ds.events })
+    |> list.fold(duration.zero(), fn(acc, event) {
+      case event {
+        HolidayBooking(_, amount, Gain) -> duration.add(acc, amount)
+        HolidayBooking(_, amount, Use) -> duration.subtract(acc, amount)
+        _ -> acc
+      }
+    })
+
+  let per_day =
+    state.history
+    |> list.filter(fn(ds) { ds.date.year == st.date.year })
+    |> list.flat_map(fn(ds) { ds.events |> list.map(fn(ev) { #(ds.date, ev) }) })
+    |> list.filter_map(fn(e) {
+      case e.1 {
+        HolidayBooking(_, amount, Gain) -> Ok(#(e.0, amount))
+        HolidayBooking(_, amount, Use) -> Ok(#(e.0, amount))
+        _ -> Error("")
+      }
+    })
+
+  HolidayStatistics(from_last_years, per_day)
 }

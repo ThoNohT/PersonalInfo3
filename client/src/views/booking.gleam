@@ -363,7 +363,10 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
       ))
     }
     LoadHolidayOverview -> {
-      ef.just(HolidayOverview(state: st))
+      ef.just(HolidayOverview(
+        state: st,
+        stats: statistics.calculate_holiday_statistics(st),
+      ))
     }
     _ -> ef.just(model)
   }
@@ -647,15 +650,15 @@ fn input_area(is: InputState, ds: Statistics) {
       eh.hr([]),
       eh.div([a.class("row p-2 align-content-middle")], [
         eh.b([a.class("col-3 d-flex col justify-content-between")], [
-        e.text("Holiday left: "),
-        //  eh.button(
-        //    [
-        //      a.class("btn btn-sm btn-outline-dark"),
-        //      a.style([#("font-size", "10px"), #("padding", "0 0.25rem")]),
-        //      ev.on_click(LoadHolidayOverview),
-        //    ],
-        //    [e.text("🔗")],
-        //  ),
+          e.text("Holiday left: "),
+          eh.button(
+            [
+              a.class("btn btn-sm btn-outline-dark"),
+              a.style([#("font-size", "10px"), #("padding", "0 0.25rem")]),
+              ev.on_click(LoadHolidayOverview),
+            ],
+            [e.text("🔗")],
+          ),
         ]),
         e.text(duration.to_string(ds.remaining_holiday)),
       ]),
