@@ -67,6 +67,20 @@ fn table_row(
   ])
 }
 
+/// Prints an empty row.
+fn empty_row() {
+  eh.tr([], [
+    eh.th([], []),
+    eh.td([], []),
+    eh.td([], []),
+    eh.td([], []),
+    eh.td([], []),
+    eh.td([], []),
+    eh.td([], []),
+    eh.td([], []),
+  ])
+}
+
 /// View logic for the WeekOverview view.
 pub fn view(model: Model) {
   use #(state, stats) <- option.then(get_model(model))
@@ -101,8 +115,13 @@ pub fn view(model: Model) {
       eh.tbody([], [
         table_row("Office", stats, fn(s) { DofDuration(s.total_office) }),
         table_row("Home", stats, fn(s) { DofDuration(s.total_home) }),
-        table_row("Total", stats, fn(s) { DofDuration(s.total) }),
+        table_row("Total", stats, fn(s) { DofDuration(s.total_excl_holiday) }),
         table_row("Travel", stats, fn(s) { DofFloat(s.travel_distance) }),
+        empty_row(),
+        table_row("Holiday", stats, fn(s) { DofDuration(s.total_holiday) }),
+        table_row("Total w/holiday", stats, fn(s) {
+          DofDuration(s.total_incl_holiday)
+        }),
       ]),
     ]),
     eh.button(

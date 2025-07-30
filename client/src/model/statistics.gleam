@@ -25,7 +25,7 @@ import util/time.{type Time}
 /// Creates empty day statistics.
 fn day_zero(day: Day) -> DayStatistics {
   let z = duration.zero()
-  DayStatistics(day, z, z, z, z, 0.0)
+  DayStatistics(day, z, z, z, z, z, z, 0.0)
 }
 
 /// Creates empty statistics.
@@ -49,7 +49,15 @@ pub fn calculate_day(
     duration: Duration,
     loc: Option(ClockLocation),
   ) -> DayStatistics {
-    let total = duration.add(stats.total, duration)
+    let total_incl_holiday = duration.add(stats.total_incl_holiday, duration)
+    let total_excl_holiday = {
+      use <- prim.check(stats.total_excl_holiday, loc != None)
+      duration.add(stats.total_excl_holiday, duration)
+    }
+    let total_holiday = {
+      use <- prim.check(stats.total_holiday, loc == None)
+      duration.add(stats.total_holiday, duration)
+    }
     let total_office = {
       use <- prim.check(stats.total_office, loc == Some(Office))
       duration.add(stats.total_office, duration)
@@ -59,7 +67,7 @@ pub fn calculate_day(
       duration.add(stats.total_home, duration)
     }
 
-    DayStatistics(..stats, total:, total_office:, total_home:)
+    DayStatistics(..stats, total_incl_holiday:, total_excl_holiday:, total_holiday:, total_office:, total_home:)
   }
 
   let folder = fn(acc: #(DayStatistics, Option(InState)), event: DayEvent) {
@@ -118,7 +126,7 @@ pub fn calculate_day(
   // Fill in the remaining.
   DayStatistics(
     ..stats,
-    eta: duration.subtract(ds.target, stats.total),
+    eta: duration.subtract(ds.target, stats.total_incl_holiday),
     travel_distance: case duration.is_zero(stats.total_office) {
       True -> 0.0
       False -> travel_distance
@@ -133,8 +141,8 @@ pub fn recalculate(state: State) -> State {
   let folder = fn(acc: Statistics, day: DayStatistics) {
     Statistics(
       ..acc,
-      week: duration.add(acc.week, day.total),
-      week_eta: duration.subtract(acc.week_eta, day.total),
+      week: duration.add(acc.week, day.total_incl_holiday),
+      week_eta: duration.subtract(acc.week_eta, day.total_incl_holiday),
     )
   }
 
@@ -190,10 +198,7 @@ pub fn recalculate(state: State) -> State {
 }
 
 /// Calculates week statistics for the week the current day is in.
-pub fn calculate_week_statistics(
-  state: State,
-  include_future: Bool,
-) -> WeekStatistics {
+pub fn calculate_week_statistics(state: State) -> WeekStatistics {
   let st = state.current_state
 
   // Calculate day statistics for all registered days of the week.
@@ -202,7 +207,6 @@ pub fn calculate_week_statistics(
     |> list.filter(fn(ds) {
       day.week_number(ds.date) == day.week_number(st.date)
       && ds.date.year == st.date.year
-      && { day.compare(ds.date, st.date) != Gt || include_future }
     })
     |> list.map(fn(day) {
       #(

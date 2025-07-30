@@ -359,7 +359,7 @@ pub fn update(model: Model, msg: Msg) -> Option(#(Model, Effect(Msg))) {
     LoadWeekOverview -> {
       ef.just(WeekOverview(
         state: st,
-        stats: statistics.calculate_week_statistics(st, True),
+        stats: statistics.calculate_week_statistics(st),
       ))
     }
     LoadHolidayOverview -> {
@@ -618,7 +618,7 @@ fn input_area(is: InputState, ds: Statistics) {
       eh.hr([]),
       eh.div([a.class("row p-2 align-content-middle")], [
         eh.b([a.class("col-3")], [e.text("Total: ")]),
-        e.text(duration.to_string(ds.current_day.total)),
+        e.text(duration.to_string(ds.current_day.total_incl_holiday)),
       ]),
       eh.div([a.class("row p-2 align-content-middle")], [
         eh.b([a.class("col-3")], [e.text("Total (office): ")]),

@@ -150,7 +150,9 @@ pub type DayStatistics {
   DayStatistics(
     day: Day,
     eta: Duration,
-    total: Duration,
+    total_holiday: Duration,
+    total_incl_holiday: Duration,
+    total_excl_holiday: Duration,
     total_office: Duration,
     total_home: Duration,
     travel_distance: Float,
