@@ -12,7 +12,7 @@ import birl.{type Day, type Weekday}
 import model.{
   type ClockLocation, type DayEvent, type DayState, type DayStatistics,
   type HolidayMonthStatistics, type HolidayStatistics, type State,
-  type Statistics, type WeekStatistics, ClockEvent, DayState, DayStatistics,
+  type Statistics, type WeekStatistics, ClockEvent, DayStatistics,
   Gain, HolidayBooking, HolidayMonthStatistics, HolidayStatistics, Home, In,
   Office, Out, State, Statistics, Use, WeekStatistics,
 }

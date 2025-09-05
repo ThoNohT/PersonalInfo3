@@ -13,9 +13,9 @@ import lustre/internals/vdom
 
 import model.{
   type HolidayMonthStatistics, type HolidayStatistics, type Model, type Msg,
-  type State, Booking, HolidayMonthStatistics, HolidayOverview, ReturnToBooking,
-  State,
+  type State, Booking, HolidayOverview, ReturnToBooking,
 }
+
 import util/duration.{type Duration}
 import util/list as lst
 

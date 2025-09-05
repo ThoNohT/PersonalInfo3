@@ -10,7 +10,7 @@ import lustre/event as ev
 
 import model.{
   type DayStatistics, type Model, type Msg, type State, type WeekStatistics,
-  Booking, DayStatistics, ReturnToBooking, State, WeekOverview,
+  Booking, ReturnToBooking, WeekOverview,
 }
 
 import util/day

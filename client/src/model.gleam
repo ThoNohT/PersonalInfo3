@@ -12,7 +12,7 @@ import util/day
 import util/duration.{type Duration}
 import util/numbers.{Pos}
 import util/prim
-import util/time.{type Time, Time}
+import util/time.{type Time}
 
 pub type Validated(a) {
   Validated(input: String, parsed: Option(a))

@@ -38,7 +38,7 @@ fn modifier_state_key_decoder(
   fn(input) {
     use decode_result <- result.try(decoder(input))
     let #(msg, pd) = to_msg(decode_result)
-    case pd {
+    let _ =  case pd {
       True -> event.prevent_default(input)
       False -> Nil
     }

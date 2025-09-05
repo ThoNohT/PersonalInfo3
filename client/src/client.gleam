@@ -12,7 +12,7 @@ import lustre_http as http
 import model.{
   type Model, type Msg, Loading, Login, LoginModel, ValidateSessionCheck,
 }
-import shared_model.{type Credentials, Credentials}
+import shared_model.{Credentials}
 import util/effect as ef
 import util/local_storage
 import util/prim

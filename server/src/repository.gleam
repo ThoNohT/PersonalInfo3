@@ -1,11 +1,11 @@
-import shared_model
 import gleam/dynamic/decode
 import gleam/option.{type Option, None, Some}
+import shared_model
 
 import birl
 import sqlight.{type Connection}
 
-import model.{type User, User}
+import model.{type User}
 import util/decode as dec
 import util/option as opt
 import util/prim
