@@ -7,7 +7,7 @@ import birl/duration
 import wisp
 
 import model.{type Context}
-import repository
+import repository/user as repository
 import util/db
 import util/handler_helpers as hh
 import util/random

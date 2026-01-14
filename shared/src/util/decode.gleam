@@ -1,6 +1,7 @@
 import gleam/dynamic
 import gleam/dynamic/decode.{type Decoder} as d
 import gleam/list
+import gleam/option.{type Option, None, Some}
 import gleam/result
 
 /// Takes a decoder, and turns it into a decoder that accepts an object where the 
@@ -32,5 +33,14 @@ pub fn from_result(res: Result(a, b), zero: a) -> d.Decoder(a) {
   case res {
     Ok(a) -> d.success(a)
     Error(_) -> d.failure(zero, "Result")
+  }
+}
+
+/// Converts an option into a decoder.
+/// decode.failure requires a zero element, so one must be passed to this function as well.
+pub fn from_option(option: Option(a), zero: a) -> d.Decoder(a) {
+  case option {
+    Some(a) -> d.success(a)
+    None -> d.failure(zero, "Option")
   }
 }

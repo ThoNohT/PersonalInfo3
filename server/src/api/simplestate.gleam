@@ -4,7 +4,8 @@ import gleam/option
 
 import wisp
 
-import repository
+import repository/user as user_repo
+import repository/simplestate as ss_repo
 import util/db
 import util/handler_helpers as hh
 
@@ -29,10 +30,10 @@ fn load_simple_state(
   use token <- hh.require_header(401, req, "authorization")
 
   use conn <- db.with_connection(conn_str, False)
-  use user_id <- hh.try(500, repository.find_user_from_session(conn, token))
+  use user_id <- hh.try(500, user_repo.find_user_from_session(conn, token))
   use user_id <- hh.then(401, user_id)
 
-  use state <- hh.try(500, repository.try_get_simple_state(conn, user_id, key))
+  use state <- hh.try(500, ss_repo.try_get_simple_state(conn, user_id, key))
   use text <- hh.try(500, bit_array.to_string(option.unwrap(state, <<>>)))
 
   wisp.ok() |> wisp.string_body(text)
@@ -46,12 +47,12 @@ fn save_simple_state(
   use token <- hh.require_header(401, req, "authorization")
 
   use conn <- db.with_connection(conn_str, True)
-  use user_id <- hh.try(500, repository.find_user_from_session(conn, token))
+  use user_id <- hh.try(500, user_repo.find_user_from_session(conn, token))
   use user_id <- hh.then(401, user_id)
 
   use value <- hh.try(400, wisp.read_body_to_bitstring(req))
 
-  use _ <- hh.try(500, repository.set_simple_state(conn, user_id, key, value))
+  use _ <- hh.try(500, ss_repo.set_simple_state(conn, user_id, key, value))
 
   use <- db.commit(conn)
   wisp.ok()

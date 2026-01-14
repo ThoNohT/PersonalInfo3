@@ -13,7 +13,7 @@ import util/random
 import api
 import model.{type Context, Context}
 import db_migrate
-import repository
+import repository/user as repository
 
 pub fn middleware(
   req: wisp.Request,

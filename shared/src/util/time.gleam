@@ -1,3 +1,4 @@
+import gleam/dynamic/decode.{type Decoder}
 import gleam/int
 import gleam/option.{None, Some}
 import gleam/order.{type Order}
@@ -5,6 +6,7 @@ import gleam/string
 
 import birl
 
+import util/decode as d
 import util/numbers as num
 import util/parser.{type Parser} as p
 import util/parsers
@@ -112,7 +114,7 @@ pub fn unsplit_parser() -> Parser(Time) {
   |> p.from_option
 }
 
-/// A parser that can parse a time eithe using split_parser or unsplit_parser.
+/// A parser that can parse a time either using split_parser or unsplit_parser.
 /// Valid representations are:
 /// 1     -> 01:00
 /// 12    -> 12:00
@@ -131,4 +133,11 @@ pub fn unsplit_parser() -> Parser(Time) {
 /// a:b where a > 23 or b > 59 would naturally represent invalid times.
 pub fn parser() -> Parser(Time) {
   p.alt(split_parser(True), unsplit_parser())
+}
+
+/// A decoder for a time. Uses parser() for valid values.
+pub fn decoder() -> Decoder(Time) {
+  decode.then(decode.string, fn(val) {
+    p.conv(parser())(val) |> d.from_option(zero())
+  })
 }

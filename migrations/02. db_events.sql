@@ -1,0 +1,16 @@
+CREATE TABLE Events (
+    Id INTEGER NOT NULL,
+    UserId INTEGER NOT NULL,
+    Date INTEGER NOT NULL,
+    Value BLOB,
+    CONSTRAINT PK_Events PRIMARY KEY (Id)
+);
+
+CREATE TABLE Snapshots (
+    Id INTEGER NOT NULL,
+    UserId INTEGER NOT NULL,
+    Date INTEGER NOT NULL,
+    Value BLOB,
+    CONSTRAINT PK_Snapshots PRIMARY KEY (Id),
+    CONSTRAINT UQ_Snapshots UNIQUE (UserId, Date)
+);

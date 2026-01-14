@@ -1,10 +1,11 @@
+import gleam/dynamic/decode.{type Decoder}
 import gleam/float
-
 import gleam/int
 import gleam/option.{type Option, None, Some}
 import gleam/order.{type Order, Eq}
 import gleam/string
 
+import util/decode as d
 import util/numbers.{type Sign, Neg, Pos} as num
 import util/parser.{type Parser} as p
 import util/parsers
@@ -252,4 +253,11 @@ pub fn int_parser() -> Parser(Duration) {
 /// 1,5  -> 1:30
 pub fn parser() -> Parser(Duration) {
   p.alt(time_parser(), decimal_parser())
+}
+
+/// A decoder for a duration. Uses parser() for valid values.
+pub fn decoder() -> Decoder(Duration) {
+  decode.then(decode.string, fn(val) {
+    p.conv(parser())(val) |> d.from_option(zero())
+  })
 }
